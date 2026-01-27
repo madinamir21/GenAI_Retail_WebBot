@@ -1,5 +1,13 @@
 # React + Vite
 
+TO BUILD:
+"npm run build"
+
+DEPLOYING WITH AMPLIFY (for now):
+- zip contents of /dist directory after building app.
+- upload that zip file to Amplify.... 
+- web app should be updated... 
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:

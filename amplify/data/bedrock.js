@@ -22,3 +22,11 @@ export function request(ctx) {
       },
     };
   }
+
+  export function response(ctx) {
+  const parsedBody = JSON.parse(ctx.result.body);
+
+  return {
+    body: parsedBody.choices[0].message.content
+  };
+}

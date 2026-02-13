@@ -29,3 +29,6 @@ node_modules
 .amplify
 amplify_outputs*
 amplifyconfiguration*
+local-aws-info.json
+local-env-info.json
+project-config.json

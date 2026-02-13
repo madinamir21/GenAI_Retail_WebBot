@@ -1,19 +1,41 @@
-#set( $limit = $util.defaultIfNull($context.args.limit, 100) )
+## [Start] List Request. **
+#set( $args = $util.defaultIfNull($ctx.stash.transformedArgs, $ctx.args) )
+#set( $limit = $util.defaultIfNull($args.limit, 100) )
 #set( $ListRequest = {
   "version": "2018-05-29",
   "limit": $limit
 } )
-#if( $context.args.nextToken )
-  #set( $ListRequest.nextToken = $context.args.nextToken )
+#if( $args.nextToken )
+  #set( $ListRequest.nextToken = $args.nextToken )
 #end
-#if( $context.args.filter )
-  #set( $ListRequest.filter = $util.parseJson("$util.transform.toDynamoDBFilterExpression($ctx.args.filter)") )
+#if( !$util.isNullOrEmpty($ctx.stash.authFilter) )
+  #set( $filter = $ctx.stash.authFilter )
+  #if( !$util.isNullOrEmpty($args.filter) )
+    #set( $filter = {
+  "and":   [$filter, $args.filter]
+} )
+  #end
+#else
+  #if( !$util.isNullOrEmpty($args.filter) )
+    #set( $filter = $args.filter )
+  #end
 #end
-#if( !$util.isNull($modelQueryExpression)
-                        && !$util.isNullOrEmpty($modelQueryExpression.expression) )
+#if( !$util.isNullOrEmpty($filter) )
+  #set( $filterExpression = $util.parseJson($util.transform.toDynamoDBFilterExpression($filter)) )
+  #if( $util.isNullOrEmpty($filterExpression) )
+    $util.error("Unable to process the filter expression", "Unrecognized Filter")
+  #end
+  #if( !$util.isNullOrBlank($filterExpression.expression) )
+    #if( $filterExpression.expressionValues.size() == 0 )
+      $util.qr($filterExpression.remove("expressionValues"))
+    #end
+    #set( $ListRequest.filter = $filterExpression )
+  #end
+#end
+#if( !$util.isNull($ctx.stash.modelQueryExpression) && !$util.isNullOrEmpty($ctx.stash.modelQueryExpression.expression) )
   $util.qr($ListRequest.put("operation", "Query"))
-  $util.qr($ListRequest.put("query", $modelQueryExpression))
-  #if( !$util.isNull($ctx.args.sortDirection) && $ctx.args.sortDirection == "DESC" )
+  $util.qr($ListRequest.put("query", $ctx.stash.modelQueryExpression))
+  #if( !$util.isNull($args.sortDirection) && $args.sortDirection == "DESC" )
     #set( $ListRequest.scanIndexForward = false )
   #else
     #set( $ListRequest.scanIndexForward = true )
@@ -21,4 +43,8 @@
 #else
   $util.qr($ListRequest.put("operation", "Scan"))
 #end
+#if( !$util.isNull($ctx.stash.metadata.index) )
+  #set( $ListRequest.IndexName = $ctx.stash.metadata.index )
+#end
 $util.toJson($ListRequest)
+## [End] List Request. **

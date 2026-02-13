@@ -1,23 +1,9 @@
-input AMPLIFY {
-  globalAuthRule: AuthRule = {allow: public}
-}
-
 type Product {
   id: ID!
   name: String!
   price: Float!
   createdAt: AWSDateTime!
   updatedAt: AWSDateTime!
-}
-
-enum ModelSortDirection {
-  ASC
-  DESC
-}
-
-type ModelProductConnection {
-  items: [Product]!
-  nextToken: String
 }
 
 input ModelStringInput {
@@ -31,22 +17,6 @@ input ModelStringInput {
   notContains: String
   between: [String]
   beginsWith: String
-  attributeExists: Boolean
-  attributeType: ModelAttributeTypes
-  size: ModelSizeInput
-}
-
-input ModelIDInput {
-  ne: ID
-  eq: ID
-  le: ID
-  lt: ID
-  ge: ID
-  gt: ID
-  contains: ID
-  notContains: ID
-  between: [ID]
-  beginsWith: ID
   attributeExists: Boolean
   attributeType: ModelAttributeTypes
   size: ModelSizeInput
@@ -83,7 +53,38 @@ input ModelBooleanInput {
   attributeType: ModelAttributeTypes
 }
 
-input ModelSizeInput {
+input ModelIDInput {
+  ne: ID
+  eq: ID
+  le: ID
+  lt: ID
+  ge: ID
+  gt: ID
+  contains: ID
+  notContains: ID
+  between: [ID]
+  beginsWith: ID
+  attributeExists: Boolean
+  attributeType: ModelAttributeTypes
+  size: ModelSizeInput
+}
+
+input ModelSubscriptionStringInput {
+  ne: String
+  eq: String
+  le: String
+  lt: String
+  ge: String
+  gt: String
+  contains: String
+  notContains: String
+  between: [String]
+  beginsWith: String
+  in: [String]
+  notIn: [String]
+}
+
+input ModelSubscriptionIntInput {
   ne: Int
   eq: Int
   le: Int
@@ -91,15 +92,40 @@ input ModelSizeInput {
   ge: Int
   gt: Int
   between: [Int]
+  in: [Int]
+  notIn: [Int]
 }
 
-input ModelProductFilterInput {
-  id: ModelIDInput
-  name: ModelStringInput
-  price: ModelFloatInput
-  and: [ModelProductFilterInput]
-  or: [ModelProductFilterInput]
-  not: ModelProductFilterInput
+input ModelSubscriptionFloatInput {
+  ne: Float
+  eq: Float
+  le: Float
+  lt: Float
+  ge: Float
+  gt: Float
+  between: [Float]
+  in: [Float]
+  notIn: [Float]
+}
+
+input ModelSubscriptionBooleanInput {
+  ne: Boolean
+  eq: Boolean
+}
+
+input ModelSubscriptionIDInput {
+  ne: ID
+  eq: ID
+  le: ID
+  lt: ID
+  ge: ID
+  gt: ID
+  contains: ID
+  notContains: ID
+  between: [ID]
+  beginsWith: ID
+  in: [ID]
+  notIn: [ID]
 }
 
 enum ModelAttributeTypes {
@@ -115,9 +141,50 @@ enum ModelAttributeTypes {
   _null
 }
 
+input ModelSizeInput {
+  ne: Int
+  eq: Int
+  le: Int
+  lt: Int
+  ge: Int
+  gt: Int
+  between: [Int]
+}
+
+enum ModelSortDirection {
+  ASC
+  DESC
+}
+
+type ModelProductConnection {
+  items: [Product]!
+  nextToken: String
+}
+
+input ModelProductFilterInput {
+  id: ModelIDInput
+  name: ModelStringInput
+  price: ModelFloatInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+  and: [ModelProductFilterInput]
+  or: [ModelProductFilterInput]
+  not: ModelProductFilterInput
+}
+
 type Query {
   getProduct(id: ID!): Product
   listProducts(filter: ModelProductFilterInput, limit: Int, nextToken: String): ModelProductConnection
+}
+
+input ModelProductConditionInput {
+  name: ModelStringInput
+  price: ModelFloatInput
+  and: [ModelProductConditionInput]
+  or: [ModelProductConditionInput]
+  not: ModelProductConditionInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
 }
 
 input CreateProductInput {
@@ -142,16 +209,18 @@ type Mutation {
   deleteProduct(input: DeleteProductInput!, condition: ModelProductConditionInput): Product
 }
 
-input ModelProductConditionInput {
-  name: ModelStringInput
-  price: ModelFloatInput
-  and: [ModelProductConditionInput]
-  or: [ModelProductConditionInput]
-  not: ModelProductConditionInput
+input ModelSubscriptionProductFilterInput {
+  id: ModelSubscriptionIDInput
+  name: ModelSubscriptionStringInput
+  price: ModelSubscriptionFloatInput
+  createdAt: ModelSubscriptionStringInput
+  updatedAt: ModelSubscriptionStringInput
+  and: [ModelSubscriptionProductFilterInput]
+  or: [ModelSubscriptionProductFilterInput]
 }
 
 type Subscription {
-  onCreateProduct: Product @aws_subscribe(mutations: ["createProduct"])
-  onUpdateProduct: Product @aws_subscribe(mutations: ["updateProduct"])
-  onDeleteProduct: Product @aws_subscribe(mutations: ["deleteProduct"])
+  onCreateProduct(filter: ModelSubscriptionProductFilterInput): Product @aws_subscribe(mutations: ["createProduct"])
+  onUpdateProduct(filter: ModelSubscriptionProductFilterInput): Product @aws_subscribe(mutations: ["updateProduct"])
+  onDeleteProduct(filter: ModelSubscriptionProductFilterInput): Product @aws_subscribe(mutations: ["deleteProduct"])
 }

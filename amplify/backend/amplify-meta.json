@@ -33,7 +33,7 @@
       },
       "providerPlugin": "awscloudformation",
       "service": "AppSync",
-      "lastPushTimeStamp": "2026-02-13T19:37:54.114Z",
+      "lastPushTimeStamp": "2026-02-13T20:15:49.128Z",
       "providerMetadata": {
         "s3TemplateURL": "https://s3.amazonaws.com/amplify-genairetailwebbot-testing-42f5a-deployment/amplify-cfn-templates/api/cloudformation-template.json",
         "logicalId": "apigenairetailwebbot"

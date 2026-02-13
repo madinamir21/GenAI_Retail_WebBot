@@ -1,56 +1,66 @@
-## [Start] Set default values. **
-$util.qr($context.args.input.put("id", $util.defaultIfNull($ctx.args.input.id, $util.autoId())))
-#set( $createdAt = $util.time.nowISO8601() )
-## Automatically set the createdAt timestamp. **
-$util.qr($context.args.input.put("createdAt", $util.defaultIfNull($ctx.args.input.createdAt, $createdAt)))
-## Automatically set the updatedAt timestamp. **
-$util.qr($context.args.input.put("updatedAt", $util.defaultIfNull($ctx.args.input.updatedAt, $createdAt)))
-## [End] Set default values. **
-## [Start] Prepare DynamoDB PutItem Request. **
-$util.qr($context.args.input.put("__typename", "Product"))
-#if( $modelObjectKey )
-  #set( $condition = {
-  "expression": "",
-  "expressionNames": {},
-  "expressionValues": {}
-} )
-  #foreach( $entry in $modelObjectKey.entrySet() )
-    #if( $velocityCount == 1 )
-      $util.qr($condition.put("expression", "attribute_not_exists(#keyCondition$velocityCount)"))
-    #else
-      $util.qr($condition.put("expression", "$condition.expression AND attribute_not_exists(#keyCondition$velocityCount)"))
-    #end
-    $util.qr($condition.expressionNames.put("#keyCondition$velocityCount", "$entry.key"))
-  #end
-#else
-  #set( $condition = {
-  "expression": "attribute_not_exists(#id)",
-  "expressionNames": {
-      "#id": "id"
-  },
-  "expressionValues": {}
-} )
-#end
-#if( $context.args.condition )
-  #set( $condition.expressionValues = {} )
-  #set( $conditionFilterExpressions = $util.parseJson($util.transform.toDynamoDBConditionExpression($context.args.condition)) )
-  $util.qr($condition.put("expression", "($condition.expression) AND $conditionFilterExpressions.expression"))
-  $util.qr($condition.expressionNames.putAll($conditionFilterExpressions.expressionNames))
-  $util.qr($condition.expressionValues.putAll($conditionFilterExpressions.expressionValues))
-#end
-#if( $condition.expressionValues && $condition.expressionValues.size() == 0 )
-  #set( $condition = {
-  "expression": $condition.expression,
-  "expressionNames": $condition.expressionNames
-} )
-#end
-{
+## [Start] Create Request template. **
+#set( $args = $util.defaultIfNull($ctx.stash.transformedArgs, $ctx.args) )
+## Set the default values to put request **
+#set( $mergedValues = $util.defaultIfNull($ctx.stash.defaultValues, {}) )
+## copy the values from input **
+$util.qr($mergedValues.putAll($util.defaultIfNull($args.input, {})))
+## set the typename **
+$util.qr($mergedValues.put("__typename", "Product"))
+#set( $PutObject = {
   "version": "2018-05-29",
   "operation": "PutItem",
-  "key": #if( $modelObjectKey ) $util.toJson($modelObjectKey) #else {
-  "id":   $util.dynamodb.toDynamoDBJson($ctx.args.input.id)
-} #end,
-  "attributeValues": $util.dynamodb.toMapValuesJson($context.args.input),
-  "condition": $util.toJson($condition)
-}
-## [End] Prepare DynamoDB PutItem Request. **
+  "attributeValues":   $util.dynamodb.toMapValues($mergedValues),
+  "condition": $condition
+} )
+#if( $args.condition )
+  $util.qr($ctx.stash.conditions.add($args.condition))
+#end
+## Begin - key condition **
+#if( $ctx.stash.metadata.modelObjectKey )
+  #set( $keyConditionExpr = {} )
+  #set( $keyConditionExprNames = {} )
+  #foreach( $entry in $ctx.stash.metadata.modelObjectKey.entrySet() )
+    $util.qr($keyConditionExpr.put("keyCondition$velocityCount", {
+  "attributeExists": false
+}))
+    $util.qr($keyConditionExprNames.put("#keyCondition$velocityCount", "$entry.key"))
+  #end
+  $util.qr($ctx.stash.conditions.add($keyConditionExpr))
+#else
+  $util.qr($ctx.stash.conditions.add({
+  "id": {
+      "attributeExists": false
+  }
+}))
+#end
+## End - key condition **
+## Start condition block **
+#if( $ctx.stash.conditions && $ctx.stash.conditions.size() != 0 )
+  #set( $mergedConditions = {
+  "and": $ctx.stash.conditions
+} )
+  #set( $Conditions = $util.parseJson($util.transform.toDynamoDBConditionExpression($mergedConditions)) )
+  #if( $Conditions.expressionValues && $Conditions.expressionValues.size() == 0 )
+    #set( $Conditions = {
+  "expression": $Conditions.expression,
+  "expressionNames": $Conditions.expressionNames
+} )
+  #end
+  ## End condition block **
+#end
+#if( $Conditions )
+  #if( $keyConditionExprNames )
+    $util.qr($Conditions.expressionNames.putAll($keyConditionExprNames))
+  #end
+  $util.qr($PutObject.put("condition", $Conditions))
+#end
+#if( $ctx.stash.metadata.modelObjectKey )
+  $util.qr($PutObject.put("key", $ctx.stash.metadata.modelObjectKey))
+#else
+  #set( $Key = {
+  "id":   $util.dynamodb.toDynamoDB($mergedValues.id)
+} )
+  $util.qr($PutObject.put("key", $Key))
+#end
+$util.toJson($PutObject)
+## [End] Create Request template. **

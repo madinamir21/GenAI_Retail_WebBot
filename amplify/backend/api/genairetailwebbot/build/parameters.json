@@ -1,0 +1,8 @@
+{
+    "AppSyncApiName": "genairetailwebbot",
+    "DynamoDBBillingMode": "PAY_PER_REQUEST",
+    "DynamoDBEnableServerSideEncryption": false,
+    "AuthModeLastUpdated": "2026-02-12T18:34:47.311Z",
+    "S3DeploymentBucket": "amplify-genairetailwebbot-testing-42f5a-deployment",
+    "S3DeploymentRootKey": "amplify-appsync-files/2412d908642472c8494561c981dde5dd0c96b17b"
+}

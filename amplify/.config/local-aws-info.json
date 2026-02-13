@@ -1,0 +1,12 @@
+{
+  "default": {
+    "configLevel": "project",
+    "useProfile": true,
+    "profileName": "default"
+  },
+  "testing": {
+    "configLevel": "project",
+    "useProfile": true,
+    "profileName": "default"
+  }
+}

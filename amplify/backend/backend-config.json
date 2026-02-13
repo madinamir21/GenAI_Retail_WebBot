@@ -1,0 +1,22 @@
+{
+  "api": {
+    "genairetailwebbot": {
+      "dependsOn": [],
+      "output": {
+        "authConfig": {
+          "additionalAuthenticationProviders": [],
+          "defaultAuthentication": {
+            "apiKeyConfig": {
+              "apiKeyExpirationDate": "2026-02-19T18:34:43.513Z",
+              "apiKeyExpirationDays": 7,
+              "description": ""
+            },
+            "authenticationType": "API_KEY"
+          }
+        }
+      },
+      "providerPlugin": "awscloudformation",
+      "service": "AppSync"
+    }
+  }
+}

@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@aws-sdk/client-lex-runtime-v2": "^3.993.0",
     "aws-amplify": "^6.16.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
@@ -31,6 +32,6 @@
     "globals": "^16.5.0",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
-    "vite": "^7.2.4"
+    "vite": "^7.3.1"
   }
 }

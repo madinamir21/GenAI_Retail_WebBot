@@ -54,14 +54,26 @@ export default function App() {
 
   // Placeholder for future AWS Bedrock integration
   const sendMessageToAI = async (message) => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve({
-          text: `Hi there! I'd be happy to help you find "${message}". Would you like to shop in store or order online?`,
-        });
-      }, 1000);
-    });
+    try {
+      const response = await fetch(
+        "https://bsqk8gu8cc.execute-api.us-east-1.amazonaws.com/chat",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          }, 
+          body: JSON.stringify({ message }),
+        }
+      );
+  
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error("API error:", error);
+      return { text: "Server error." };
+    }
   };
+  
 
   const handleSendMessage = async () => {
     if (!inputValue.trim()) return;

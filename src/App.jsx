@@ -1098,7 +1098,8 @@ const appStyle = {
   messagesContainer: { flex: 1, overflowY: 'auto', padding: '10px 0', display: 'flex', flexDirection: 'column', gap: '14px' },
   messageRow: { display: 'flex', width: '100%' },
   messageBubble: { padding: '13px 17px', borderRadius: '18px', fontSize: '15px', lineHeight: '1.55', maxWidth: '70%' },
-  userBubble: { background: '#F0C030', color: '#1a0f00', borderBottomRightRadius: '5px', fontWeight: '500' },
-  assistantBubble: { background: '#FFD5D5', color: '#1a1a1a', borderBottomLeftRadius: '5px' },
+  // User bubble: deep teal — high contrast, readable at any brightness
+  userBubble: { background: '#1A7A4A', color: '#ffffff', borderBottomRightRadius: '5px', fontWeight: '500' },
+  assistantBubble: { background: '#2C2C2C', color: '#f5f5f5', borderBottomLeftRadius: '5px' },
   dot: { width: '8px', height: '8px', background: '#aaa', borderRadius: '50%', animation: 'bounce 1.4s infinite ease-in-out both', display: 'inline-block' },
 };

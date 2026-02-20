@@ -856,6 +856,15 @@ export default function App() {
 
   const navigate = (v) => { setView(v); setActiveNav(v); };
 
+  // Get existing sessionId from localStorage
+  let sessionId = localStorage.getItem("sessionId");
+
+  // Generate a new sessionId if none exists
+  if (!sessionId) {
+    sessionId = crypto.randomUUID();
+    localStorage.setItem("sessionId", sessionId);
+  }
+
   // AWS Bedrock integration
   const sendMessage = async (msg) => {
     try {
@@ -864,7 +873,10 @@ export default function App() {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: msg }),
+          body: JSON.stringify({ 
+            message: msg,
+            sessionId: sessionId, 
+          }),
         }
       );
       const data = await response.json();
@@ -883,7 +895,16 @@ export default function App() {
     setIsLoading(true);
     try {
       const res = await sendMessage(inputValue);
-      setMessages(prev => [...prev, { id: Date.now() + 1, type: 'assistant', text: res.text }]);
+
+      // Each Lex message has its own bubble
+      const assistantMessages = res.messages.map((msg, idx) => ({
+        id: Date.now() + idx + 1,
+        type: 'assistant',
+        text: msg,
+      }));
+
+      setMessages(prev => [...prev, ...assistantMessages]);
+
     } finally { setIsLoading(false); }
   };
 

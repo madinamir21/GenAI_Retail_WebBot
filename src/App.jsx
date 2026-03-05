@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 
 // ─── SVG Icon Library ────────────────────────────────────────────────────────
 const Icons = {
@@ -141,7 +141,6 @@ const MOCK_PREFERENCES = {
 };
 
 const MOCK_SETTINGS = {
-  darkMode: false,
   notifications: false,
   sound: false,
 };
@@ -619,13 +618,8 @@ function Toggle({ on, onChange }) {
 }
 
 // ─── Settings Page ────────────────────────────────────────────────────────────
-function SettingsPage({ onViewProfile }) {
-  // TODO: Load from user preferences API
-  const [settings, setSettings] = useState({ ...MOCK_SETTINGS });
-  const toggle = (key) => setSettings(s => ({ ...s, [key]: !s[key] }));
-
+function SettingsPage({ onViewProfile, settings, onToggle }) {
   const items = [
-    { key: 'darkMode', label: 'Dark Mode' },
     { key: 'notifications', label: 'Notifications' },
     { key: 'sound', label: 'Sound' },
   ];
@@ -644,7 +638,7 @@ function SettingsPage({ onViewProfile }) {
       {items.map(({ key, label }) => (
         <div key={key} style={settingsStyle.card}>
           <span style={settingsStyle.cardLabel}>{label}</span>
-          <Toggle on={settings[key]} onChange={() => toggle(key)} />
+          <Toggle on={settings[key]} onChange={() => onToggle(key)} />
         </div>
       ))}
     </div>
@@ -659,90 +653,193 @@ const settingsStyle = {
   editLink: { background: 'none', border: 'none', fontSize: '15px', fontWeight: '600', color: '#1a1a1a', textDecoration: 'underline', cursor: 'pointer' },
 };
 
+// ─── Diet Options + Helpers ───────────────────────────────────────────────────
+const DIET_OPTIONS = {
+  type: ['Vegetarian', 'Vegan', 'Pescatarian', 'Halal', 'Kosher'],
+  restrictions: ['Gluten Free', 'Dairy Free', 'Nut Free', 'Lactose Free', 'Soy Free', 'Low Sodium', 'No High Fructose'],
+  lifestyle: ['High Protein', 'Low Carb', 'Keto', 'Paleo', 'Low Calorie', 'High Fiber'],
+};
+
+function DietEditModal({ prefKey, currentValues, isType, onApply, onClose }) {
+  const options = DIET_OPTIONS[prefKey] || [];
+  const [selected, setSelected] = useState([...currentValues]);
+  const toggle = (opt) => {
+    if (isType) { setSelected([opt]); return; }
+    setSelected(s => s.includes(opt) ? s.filter(x => x !== opt) : [...s, opt]);
+  };
+  return (
+    <div style={mStyle.overlay} onClick={onClose}>
+      <div style={{ ...mStyle.modal, width: '400px' }} onClick={e => e.stopPropagation()}>
+        <div style={mStyle.modalHeader}>
+          <h2 style={mStyle.modalTitle}>Edit {prefKey?.charAt(0).toUpperCase() + prefKey?.slice(1)}</h2>
+          <button onClick={onClose} style={mStyle.closeBtn}><Icons.X /></button>
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '20px' }}>
+          {options.map(opt => (
+            <button key={opt} onClick={() => toggle(opt)} style={{
+              padding: '7px 16px', borderRadius: '20px', border: '2px solid',
+              borderColor: selected.includes(opt) ? '#3CB371' : '#ddd',
+              background: selected.includes(opt) ? '#d4f0df' : '#f8f8f8',
+              color: selected.includes(opt) ? '#1a5c35' : '#555',
+              fontSize: '13px', fontWeight: '600', cursor: 'pointer',
+            }}>{opt}</button>
+          ))}
+        </div>
+        <button style={mStyle.submitBtn} onClick={() => onApply(selected)}>Apply</button>
+      </div>
+    </div>
+  );
+}
+
+function InlineInput({ value, onChange, onSave, onCancel }) {
+  return (
+    <div style={{ display: 'flex', gap: '6px', flex: 1 }}>
+      <input
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        style={{ flex: 1, padding: '5px 10px', fontSize: '13px', border: '1px solid #ddd', borderRadius: '6px', outline: 'none' }}
+        onKeyDown={e => { if (e.key === 'Enter') onSave(); if (e.key === 'Escape') onCancel(); }}
+        autoFocus
+      />
+      <button style={{ background: '#c8ecd4', border: 'none', borderRadius: '6px', padding: '4px 12px', fontSize: '12px', fontWeight: '700', color: '#1a5c35', cursor: 'pointer' }} onClick={onSave}>SAVE</button>
+      <button style={{ background: '#f0f0f0', border: 'none', borderRadius: '6px', padding: '4px 12px', fontSize: '12px', fontWeight: '700', color: '#555', cursor: 'pointer' }} onClick={onCancel}>CANCEL</button>
+    </div>
+  );
+}
+
 // ─── Profile Page ─────────────────────────────────────────────────────────────
 function ProfilePage({ onBack }) {
-  // TODO: Load from user API
-  const [user] = useState({ ...MOCK_USER });
+  const [user, setUser] = useState({ ...MOCK_USER });
   const [prefs, setPrefs] = useState({ ...MOCK_PREFERENCES });
-  const [sustainabilityOn, setSustainabilityOn] = useState(prefs.sustainability.enabled);
+  const [sustainabilityOn, setSustainabilityOn] = useState(MOCK_PREFERENCES.sustainability.enabled);
+  const [editField, setEditField] = useState(null);
+  const [editValue, setEditValue] = useState('');
+  const [avatarSrc, setAvatarSrc] = useState(null);
+  const avatarInputRef = useRef();
+  const [addingAddress, setAddingAddress] = useState(false);
+  const [newAddr, setNewAddr] = useState({ label: '', line1: '', city: '', state: '', zip: '', country: 'UNITED STATES' });
+  const [addingPayment, setAddingPayment] = useState(false);
+  const [newPayment, setNewPayment] = useState({ type: '', last4: '' });
+  const [editPrefKey, setEditPrefKey] = useState(null);
+  const [selectedPriorities, setSelectedPriorities] = useState([...MOCK_PREFERENCES.sustainability.priorities]);
+  const [saved, setSaved] = useState(false);
 
-  const GreenTag = ({ label }) => (
-    <span style={profStyle.greenTag}>{label}</span>
-  );
+  const togglePriority = (p) => setSelectedPriorities(s => s.includes(p) ? s.filter(x => x !== p) : [...s, p]);
 
-  const SectionBlock = ({ title, tags, lastUpdated }) => (
+  const startEdit = (field, val) => { setEditField(field); setEditValue(val); };
+  const saveField = (field) => {
+    if (field === 'email') setUser(u => ({ ...u, email: editValue }));
+    else if (field === 'phone') setUser(u => ({ ...u, phone: { ...u.phone, number: editValue } }));
+    else if (field === 'displayName') setUser(u => ({ ...u, displayName: editValue }));
+    setEditField(null);
+  };
+  const removeAddress = (id) => setUser(u => ({ ...u, addresses: u.addresses.filter(a => a.id !== id) }));
+  const addAddress = () => {
+    if (!newAddr.line1) return;
+    setUser(u => ({ ...u, addresses: [...u.addresses, { ...newAddr, id: Date.now(), isDefault: false }] }));
+    setNewAddr({ label: '', line1: '', city: '', state: '', zip: '', country: 'UNITED STATES' });
+    setAddingAddress(false);
+  };
+  const removePayment = (id) => setUser(u => ({ ...u, paymentMethods: u.paymentMethods.filter(p => p.id !== id) }));
+  const addPayment = () => {
+    if (!newPayment.type || !newPayment.last4) return;
+    setUser(u => ({ ...u, paymentMethods: [...u.paymentMethods, { ...newPayment, id: Date.now(), isDefault: false }] }));
+    setNewPayment({ type: '', last4: '' });
+    setAddingPayment(false);
+  };
+  const clearPref = (key) => {
+    setPrefs(p => {
+      if (key === 'type') return { ...p, diet: { ...p.diet, type: { ...p.diet.type, value: '' } } };
+      return { ...p, diet: { ...p.diet, [key]: { ...p.diet[key], values: [] } } };
+    });
+  };
+  const applyPref = (key, selected) => {
+    setPrefs(p => {
+      if (key === 'type') return { ...p, diet: { ...p.diet, type: { value: selected[0] || '', lastUpdated: 'Now' } } };
+      return { ...p, diet: { ...p.diet, [key]: { ...p.diet[key], values: selected, lastUpdated: 'Now' } } };
+    });
+    setEditPrefKey(null);
+  };
+  const handleSave = () => { setSaved(true); setTimeout(() => setSaved(false), 2000); };
+
+  const GreenTag = ({ label }) => <span style={profStyle.greenTag}>{label}</span>;
+
+  const SectionBlock = ({ title, prefKey, tags, lastUpdated }) => (
     <div style={profStyle.prefBlock}>
       <div style={profStyle.prefBlockHeader}>
         <span style={profStyle.prefBlockTitle}>{title}</span>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-end' }}>
-          <button style={profStyle.smallBtn}>EDIT</button>
-          <button style={profStyle.smallBtnGhost}>CLEAR</button>
+          <button style={profStyle.smallBtn} onClick={() => setEditPrefKey(prefKey)}>EDIT</button>
+          <button style={profStyle.smallBtnGhost} onClick={() => clearPref(prefKey)}>CLEAR</button>
         </div>
       </div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '8px' }}>
-        {tags.map(t => <GreenTag key={t} label={t} />)}
+        {tags.filter(Boolean).map(t => <GreenTag key={t} label={t} />)}
+        {tags.filter(Boolean).length === 0 && <span style={{ fontSize: '13px', color: '#aaa' }}>None set</span>}
       </div>
-      <span style={profStyle.lastUpdated}>Last updated on  {lastUpdated}</span>
+      <span style={profStyle.lastUpdated}>Last updated on {lastUpdated}</span>
     </div>
   );
 
   return (
     <div style={profStyle.page}>
+      {editPrefKey && (
+        <DietEditModal
+          prefKey={editPrefKey}
+          currentValues={editPrefKey === 'type' ? (prefs.diet.type.value ? [prefs.diet.type.value] : []) : (prefs.diet[editPrefKey]?.values || [])}
+          isType={editPrefKey === 'type'}
+          onApply={(selected) => applyPref(editPrefKey, selected)}
+          onClose={() => setEditPrefKey(null)}
+        />
+      )}
+      <input ref={avatarInputRef} type="file" accept="image/*" style={{ display: 'none' }}
+        onChange={e => { const f = e.target.files[0]; if (f) setAvatarSrc(URL.createObjectURL(f)); }} />
+
       <h1 style={profStyle.title}>Super Awesome Shopper Helper</h1>
 
       {/* ── MY ACCOUNT ── */}
       <div style={profStyle.accountRow}>
-        {/* Avatar */}
         <div style={{ position: 'relative', marginRight: '24px' }}>
-          <div style={profStyle.avatar}>
-            <Icons.User />
+          <div style={{ ...profStyle.avatar, cursor: 'pointer' }} onClick={() => avatarInputRef.current.click()}>
+            {avatarSrc ? <img src={avatarSrc} alt="avatar" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} /> : <Icons.User />}
           </div>
-          <button style={profStyle.avatarEdit}>✏️</button>
+          <button style={profStyle.avatarEdit} onClick={() => avatarInputRef.current.click()}>✏️</button>
           <div style={profStyle.avatarName}>{user.displayName}</div>
         </div>
 
-        {/* Account details */}
         <div style={{ flex: 1, minWidth: 0 }}>
           <h2 style={profStyle.accountTitle}>MY ACCOUNT</h2>
 
-          {/* Email */}
           <div style={profStyle.fieldRow}>
             <span style={profStyle.fieldLabel}>EMAIL:</span>
-            <span style={profStyle.fieldValue}>{user.email}</span>
-            <button style={profStyle.greenBtn}>EDIT</button>
+            {editField === 'email'
+              ? <InlineInput value={editValue} onChange={setEditValue} onSave={() => saveField('email')} onCancel={() => setEditField(null)} />
+              : <><span style={profStyle.fieldValue}>{user.email}</span><button style={profStyle.greenBtn} onClick={() => startEdit('email', user.email)}>EDIT</button></>
+            }
           </div>
 
-          {/* Social links */}
-          <div style={{ display: 'flex', gap: '16px', margin: '10px 0' }}>
-            {user.linkedAccounts.map(acct => (
-              <div key={acct.id} style={profStyle.socialRow}>
-                <span style={profStyle.socialLabel}>{acct.id === 'google' ? '🅖 ' : '📷 '}{acct.label}</span>
-                <button style={profStyle.greenBtn}>{acct.linked ? 'UNLINK' : 'LINK'}</button>
-              </div>
-            ))}
-          </div>
-
-          {/* Phone */}
           <div style={profStyle.fieldRow}>
             <span style={profStyle.fieldLabel}>PHONE:</span>
-            <span style={profStyle.fieldValue}>🇺🇸 {user.phone.country} | {user.phone.number}</span>
-            <button style={profStyle.greenBtn}>EDIT</button>
+            {editField === 'phone'
+              ? <InlineInput value={editValue} onChange={setEditValue} onSave={() => saveField('phone')} onCancel={() => setEditField(null)} />
+              : <><span style={profStyle.fieldValue}>🇺🇸 {user.phone.country} | {user.phone.number}</span><button style={profStyle.greenBtn} onClick={() => startEdit('phone', user.phone.number)}>EDIT</button></>
+            }
           </div>
 
-          {/* Display name */}
           <div style={profStyle.fieldRow}>
             <span style={profStyle.fieldLabel}>What Should We Call You?</span>
           </div>
           <div style={profStyle.fieldRow}>
-            <span style={{ ...profStyle.fieldValue, flex: 1, background: '#f4f4f4', borderRadius: '6px', padding: '6px 12px' }}>{user.displayName}</span>
-            <button style={profStyle.greenBtn}>EDIT</button>
+            {editField === 'displayName'
+              ? <InlineInput value={editValue} onChange={setEditValue} onSave={() => saveField('displayName')} onCancel={() => setEditField(null)} />
+              : <><span style={{ ...profStyle.fieldValue, flex: 1, background: '#f4f4f4', borderRadius: '6px', padding: '6px 12px' }}>{user.displayName}</span><button style={profStyle.greenBtn} onClick={() => startEdit('displayName', user.displayName)}>EDIT</button></>
+            }
           </div>
         </div>
       </div>
 
       {/* ── ADDRESSES + PAYMENTS ── */}
       <div style={profStyle.twoCol}>
-        {/* Addresses */}
         <div style={profStyle.colBox}>
           <h3 style={profStyle.colTitle}>MY ADDRESSES</h3>
           {user.addresses.map(a => (
@@ -754,14 +851,28 @@ function ProfilePage({ onBack }) {
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
                 {a.isDefault && <span style={profStyle.defaultTag}>DEFAULT</span>}
-                <button style={profStyle.removeBtn}>REMOVE</button>
+                <button style={profStyle.removeBtn} onClick={() => removeAddress(a.id)}>REMOVE</button>
               </div>
             </div>
           ))}
-          <button style={profStyle.addDashedBtn}>+ &nbsp; Add Address</button>
+          {addingAddress ? (
+            <div style={{ background: '#f0faf4', borderRadius: '10px', padding: '12px', marginBottom: '10px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {[['Label', 'label'], ['Street', 'line1'], ['City', 'city'], ['State', 'state'], ['Zip', 'zip']].map(([lbl, key]) => (
+                <div key={key} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <span style={{ fontSize: '12px', color: '#555', minWidth: '44px' }}>{lbl}</span>
+                  <input style={{ flex: 1, padding: '5px 8px', fontSize: '13px', border: '1px solid #ddd', borderRadius: '6px', outline: 'none' }} value={newAddr[key]} onChange={e => setNewAddr(a => ({ ...a, [key]: e.target.value }))} />
+                </div>
+              ))}
+              <div style={{ display: 'flex', gap: '6px', marginTop: '4px' }}>
+                <button style={profStyle.greenBtn} onClick={addAddress}>SAVE</button>
+                <button style={{ background: '#f0f0f0', border: 'none', borderRadius: '6px', padding: '4px 12px', fontSize: '12px', fontWeight: '700', color: '#555', cursor: 'pointer' }} onClick={() => setAddingAddress(false)}>CANCEL</button>
+              </div>
+            </div>
+          ) : (
+            <button style={profStyle.addDashedBtn} onClick={() => setAddingAddress(true)}>+ &nbsp; Add Address</button>
+          )}
         </div>
 
-        {/* Payment Methods */}
         <div style={profStyle.colBox}>
           <h3 style={profStyle.colTitle}>MY PAYMENT METHODS ({user.paymentMethods.length})</h3>
           {user.paymentMethods.map(p => (
@@ -770,10 +881,31 @@ function ProfilePage({ onBack }) {
                 <div style={{ fontSize: '14px', color: '#1a1a1a' }}>{p.type} Ending In ***{p.last4}</div>
                 {p.isDefault && <span style={profStyle.defaultTag}>DEFAULT</span>}
               </div>
-              <button style={profStyle.removeBtn}>REMOVE</button>
+              <button style={profStyle.removeBtn} onClick={() => removePayment(p.id)}>REMOVE</button>
             </div>
           ))}
-          <button style={profStyle.addDashedBtn}>+ &nbsp; Add a payment method</button>
+          {addingPayment ? (
+            <div style={{ background: '#f0faf4', borderRadius: '10px', padding: '12px', marginBottom: '10px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <span style={{ fontSize: '12px', color: '#555', minWidth: '44px' }}>Type</span>
+                <select style={{ flex: 1, padding: '5px 8px', fontSize: '13px', border: '1px solid #ddd', borderRadius: '6px', outline: 'none' }} value={newPayment.type} onChange={e => setNewPayment(p => ({ ...p, type: e.target.value }))}>
+                  <option value="">Select…</option>
+                  <option>Debit Card</option>
+                  <option>Credit Card</option>
+                </select>
+              </div>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <span style={{ fontSize: '12px', color: '#555', minWidth: '44px' }}>Last 4</span>
+                <input maxLength={4} style={{ width: '80px', padding: '5px 8px', fontSize: '13px', border: '1px solid #ddd', borderRadius: '6px', outline: 'none' }} value={newPayment.last4} onChange={e => setNewPayment(p => ({ ...p, last4: e.target.value }))} />
+              </div>
+              <div style={{ display: 'flex', gap: '6px', marginTop: '4px' }}>
+                <button style={profStyle.greenBtn} onClick={addPayment}>SAVE</button>
+                <button style={{ background: '#f0f0f0', border: 'none', borderRadius: '6px', padding: '4px 12px', fontSize: '12px', fontWeight: '700', color: '#555', cursor: 'pointer' }} onClick={() => setAddingPayment(false)}>CANCEL</button>
+              </div>
+            </div>
+          ) : (
+            <button style={profStyle.addDashedBtn} onClick={() => setAddingPayment(true)}>+ &nbsp; Add a payment method</button>
+          )}
         </div>
       </div>
 
@@ -781,9 +913,9 @@ function ProfilePage({ onBack }) {
       <h2 style={profStyle.sectionHeader}>PREFERENCES</h2>
 
       <h3 style={profStyle.subHeader}>DIET</h3>
-      <SectionBlock title="Type" tags={[prefs.diet.type.value]} lastUpdated={prefs.diet.type.lastUpdated} />
-      <SectionBlock title="Restrictions" tags={prefs.diet.restrictions.values} lastUpdated={prefs.diet.restrictions.lastUpdated} />
-      <SectionBlock title="Lifestyle" tags={prefs.diet.lifestyle.values} lastUpdated={prefs.diet.lifestyle.lastUpdated} />
+      <SectionBlock title="Type" prefKey="type" tags={[prefs.diet.type.value]} lastUpdated={prefs.diet.type.lastUpdated} />
+      <SectionBlock title="Restrictions" prefKey="restrictions" tags={prefs.diet.restrictions.values} lastUpdated={prefs.diet.restrictions.lastUpdated} />
+      <SectionBlock title="Lifestyle" prefKey="lifestyle" tags={prefs.diet.lifestyle.values} lastUpdated={prefs.diet.lifestyle.lastUpdated} />
 
       <h3 style={{ ...profStyle.subHeader, marginTop: '20px' }}>SUSTAINABILITY</h3>
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
@@ -792,14 +924,24 @@ function ProfilePage({ onBack }) {
       </div>
       <p style={{ fontSize: '13px', color: '#555', marginBottom: '10px' }}>What matters to you?</p>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '20px' }}>
-        {prefs.sustainability.priorities.map(p => (
-          <span key={p} style={{ ...profStyle.greenTag, background: '#FFF3CD', color: '#7a5c00' }}>+ &nbsp;{p}</span>
-        ))}
+        {['Recycled Materials', 'Energy Efficiency', 'Animal Welfare'].map(p => {
+          const on = selectedPriorities.includes(p);
+          return (
+            <button key={p} onClick={() => togglePriority(p)} style={{
+              padding: '7px 16px', borderRadius: '20px', border: '2px solid',
+              borderColor: on ? '#c9a000' : '#ddd',
+              background: on ? '#FFF3CD' : '#f4f4f4',
+              color: on ? '#7a5c00' : '#888',
+              fontSize: '13px', fontWeight: '600', cursor: 'pointer', transition: 'all .15s',
+            }}>{p}</button>
+          );
+        })}
       </div>
 
-      <button style={profStyle.saveBtn}>SAVE</button>
+      <button style={{ ...profStyle.saveBtn, background: saved ? '#d4f0df' : '#FFBF7A', color: saved ? '#1a5c35' : '#7a3a00' }} onClick={handleSave}>
+        {saved ? 'SAVED ✓' : 'SAVE'}
+      </button>
 
-      {/* Back */}
       <button onClick={onBack} style={profStyle.backCircle}>←</button>
     </div>
   );
@@ -853,6 +995,14 @@ export default function App() {
   const [payment, setPayment] = useState({ name: '', number: '', expMonth: '', expYear: '', cvv: '' });
   const [cartItems] = useState(MOCK_CART);
   const cartCount = cartItems.reduce((s, i) => s + i.qty, 0);
+  const [settings, setSettings] = useState({ ...MOCK_SETTINGS });
+  const toggleSetting = (key) => setSettings(s => ({ ...s, [key]: !s[key] }));
+  const [showFade, setShowFade] = useState(false);
+  const messagesEndRef = useRef(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, isLoading]);
 
   const navigate = (v) => { setView(v); setActiveNav(v); };
 
@@ -926,7 +1076,7 @@ export default function App() {
   const checkoutSteps = ['cart', 'shipping', 'billing', 'payment', 'review'];
 
   const renderContent = () => {
-    if (view === 'settings') return <SettingsPage onViewProfile={() => { setView('profile'); setShowUserMenu(false); }} />;
+    if (view === 'settings') return <SettingsPage onViewProfile={() => { setView('profile'); setShowUserMenu(false); }} settings={settings} onToggle={toggleSetting} />;
     if (view === 'profile') return <ProfilePage onBack={() => setView('chat')} />;
     if (view === 'orderHistory') return <OrderHistory />;
     if (view === 'cart') return <Cart cartItems={cartItems} onCheckout={() => setView('shipping')} onBack={goBack} />;
@@ -949,19 +1099,23 @@ export default function App() {
           </div>
         ) : (
           <div style={appStyle.conversationContainer}>
-            <div style={appStyle.messagesContainer}>
-              {messages.map(msg => (
-                <div key={msg.id} style={{ ...appStyle.messageRow, justifyContent: msg.type === 'user' ? 'flex-end' : 'flex-start' }}>
-                  <div style={{ ...appStyle.messageBubble, ...(msg.type === 'user' ? appStyle.userBubble : appStyle.assistantBubble) }}>{msg.text}</div>
-                </div>
-              ))}
-              {isLoading && (
-                <div style={{ ...appStyle.messageRow, justifyContent: 'flex-start' }}>
-                  <div style={{ ...appStyle.messageBubble, ...appStyle.assistantBubble, display: 'flex', gap: '5px', padding: '18px' }}>
-                    <span style={{ ...appStyle.dot, animationDelay: '-0.32s' }} /><span style={{ ...appStyle.dot, animationDelay: '-0.16s' }} /><span style={appStyle.dot} />
+            <div style={{ position: 'relative', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+              <div style={appStyle.messagesContainer} onScroll={e => setShowFade(e.target.scrollTop > 20)}>
+                {messages.map(msg => (
+                  <div key={msg.id} style={{ ...appStyle.messageRow, justifyContent: msg.type === 'user' ? 'flex-end' : 'flex-start' }}>
+                    <div style={{ ...appStyle.messageBubble, ...(msg.type === 'user' ? appStyle.userBubble : appStyle.assistantBubble) }}>{msg.text}</div>
                   </div>
-                </div>
-              )}
+                ))}
+                {isLoading && (
+                  <div style={{ ...appStyle.messageRow, justifyContent: 'flex-start' }}>
+                    <div style={{ ...appStyle.messageBubble, ...appStyle.assistantBubble, display: 'flex', gap: '5px', padding: '18px' }}>
+                      <span style={{ ...appStyle.dot, animationDelay: '-0.32s' }} /><span style={{ ...appStyle.dot, animationDelay: '-0.16s' }} /><span style={appStyle.dot} />
+                    </div>
+                  </div>
+                )}
+                <div ref={messagesEndRef} />
+              </div>
+              {showFade && <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '45px', background: 'linear-gradient(to bottom, rgba(255,255,255,0.92) 0%, transparent 100%)', pointerEvents: 'none', zIndex: 1 }} />}
             </div>
             <div style={{ paddingTop: '14px', paddingBottom: '6px' }}>
               <div style={appStyle.inputContainer}>
@@ -991,6 +1145,7 @@ export default function App() {
         .app-title:hover{color:#3CB371!important}
         *{margin:0;padding:0;box-sizing:border-box}
         input,select{font-family:inherit}
+        *::-webkit-scrollbar{display:none}
       `}</style>
 
       {showUpload && <UploadModal onClose={() => setShowUpload(false)} />}
@@ -1082,7 +1237,7 @@ export default function App() {
           </button>
         </header>
 
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto', minHeight: 0 }}>
           {renderContent()}
         </div>
       </main>
@@ -1100,7 +1255,7 @@ const userMenuStyle = {
 };
 
 const appStyle = {
-  container: { display: 'flex', minHeight: '100vh', fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif", background: '#fff' },
+  container: { display: 'flex', height: '100vh', overflow: 'hidden', fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif", background: '#fff' },
   sidebar: { width: '215px', minWidth: '215px', background: '#3CB371', padding: '18px 14px', display: 'flex', flexDirection: 'column' },
   sidebarHeader: { display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '28px' },
   iconBtn: { background: 'none', border: 'none', color: 'white', cursor: 'pointer', padding: '7px', display: 'flex', alignItems: 'center', justifyContent: 'center' },
@@ -1109,14 +1264,14 @@ const appStyle = {
   mainContent: { flex: 1, display: 'flex', flexDirection: 'column', padding: '20px 40px', minWidth: 0 },
   header: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '22px', paddingBottom: '14px', borderBottom: '1px solid #f0f0f0' },
   title: { fontSize: '26px', fontWeight: '700', color: '#1a1a1a' },
-  chatArea: { flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' },
+  chatArea: { flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: 0, overflow: 'hidden' },
   welcomeContainer: { display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', maxWidth: '600px', marginTop: '80px' },
   welcomeTitle: { fontSize: '26px', fontWeight: '600', color: '#1a1a1a', marginBottom: '28px', textAlign: 'center' },
   inputContainer: { display: 'flex', alignItems: 'center', background: 'white', border: '2px solid #e0e0e0', borderRadius: '25px', padding: '7px 14px', width: '100%', boxShadow: '0 2px 10px rgba(0,0,0,0.07)' },
   chatInput: { flex: 1, border: 'none', outline: 'none', fontSize: '16px', padding: '9px 5px', color: '#1a1a1a', background: 'transparent' },
   sendBtn: { background: 'white', border: '2px solid #3CB371', borderRadius: '8px', padding: '7px 11px', color: '#3CB371', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all .2s' },
-  conversationContainer: { display: 'flex', flexDirection: 'column', width: '100%', maxWidth: '800px', height: '100%', margin: '0 auto' },
-  messagesContainer: { flex: 1, overflowY: 'auto', padding: '10px 0', display: 'flex', flexDirection: 'column', gap: '14px' },
+  conversationContainer: { display: 'flex', flexDirection: 'column', width: '100%', maxWidth: '800px', height: '100%', margin: '0 auto', minHeight: 0 },
+  messagesContainer: { flex: 1, overflowY: 'auto', padding: '10px 0', display: 'flex', flexDirection: 'column', gap: '14px', minHeight: 0, scrollbarWidth: 'none', msOverflowStyle: 'none' },
   messageRow: { display: 'flex', width: '100%' },
   messageBubble: { padding: '13px 17px', borderRadius: '18px', fontSize: '15px', lineHeight: '1.55', maxWidth: '70%' },
   // User bubble: deep teal — high contrast, readable at any brightness

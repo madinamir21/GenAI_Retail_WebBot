@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import StoreMap from './StoreMap.jsx'
 
 // ─── SVG Icon Library ────────────────────────────────────────────────────────
 const Icons = {
@@ -1064,10 +1065,11 @@ export default function App() {
     if (key === 'upload') { setShowUpload(true); return; }
     if (key === 'chat') { setView('chat'); setActiveNav('chat'); return; }
     if (key === 'orderHistory') { navigate('orderHistory'); return; }
+    if (key === 'map') { navigate('map'); return; }
   };
 
   const goBack = () => {
-    const prev = { cart: 'chat', shipping: 'cart', billing: 'shipping', payment: 'billing', review: 'payment', orderHistory: 'chat', settings: 'chat', profile: 'chat' };
+    const prev = { cart: 'chat', shipping: 'cart', billing: 'shipping', payment: 'billing', review: 'payment', orderHistory: 'chat', settings: 'chat', profile: 'chat', map: 'chat' };
     const next = prev[view] || 'chat';
     setView(next);
     if (next === 'chat') setActiveNav(null);
@@ -1079,6 +1081,7 @@ export default function App() {
     if (view === 'settings') return <SettingsPage onViewProfile={() => { setView('profile'); setShowUserMenu(false); }} settings={settings} onToggle={toggleSetting} />;
     if (view === 'profile') return <ProfilePage onBack={() => setView('chat')} />;
     if (view === 'orderHistory') return <OrderHistory />;
+    if (view === 'map') return <StoreMap />;
     if (view === 'cart') return <Cart cartItems={cartItems} onCheckout={() => setView('shipping')} onBack={goBack} />;
     if (view === 'shipping') return <AddressForm title="Enter Shipping Address" data={shipping} onChange={setShipping} onContinue={() => setView('billing')} onBack={goBack} />;
     if (view === 'billing') return <AddressForm title="Enter Billing Address" data={billing} onChange={setBilling} onContinue={() => setView('payment')} onBack={goBack} extraAction={{ label: 'Same as Shipping', fn: () => { setBilling({ ...shipping }); setView('payment'); } }} />;
@@ -1192,7 +1195,7 @@ export default function App() {
           { key: 'chat', icon: <Icons.MessageSquare />, label: 'Chat' },
           { key: 'orderHistory', icon: <Icons.Clock />, label: 'Order History' },
           { key: 'upload', icon: <Icons.Upload />, label: 'Upload List' },
-          { key: 'map', icon: <Icons.MapPin />, label: 'Store Map', disabled: true },
+          { key: 'map', icon: <Icons.MapPin />, label: 'Store Map' },
         ].map(({ key, icon, label, disabled }) => (
           <button
             key={key}

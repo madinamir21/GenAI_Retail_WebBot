@@ -1,11 +1,6 @@
 import React, { useState, useRef, useCallback } from 'react';
 import storeMapSvg from './assets/STORE_MAP_FIGMA.svg';
 
-// ─── Data ─────────────────────────────────────────────────────────────────────
-// The SVG is 1920×878px.
-// Normalized coords: x ∈ [0,1] maps to SVG width.
-// y ∈ [0, 1.115] but the visible map starts at y_norm=0.115,
-// so: pct_top = (y_norm - 0.115) / 1.0 * 100%
 const Y_OFFSET = 0.115;
 
 const SECTION_BOUNDS = {
@@ -427,7 +422,7 @@ const s = {
   page: { display:'flex', flexDirection:'column', width:'100%', height:'100%', gap:'10px' },
 
   header: { display:'flex', justifyContent:'space-between', alignItems:'flex-start', flexWrap:'wrap', gap:'10px' },
-  title:  { fontSize:'26px', fontWeight:'700', color:'#1a1a1a', marginBottom:'2px' },
+  title:  { fontSize:'26px', fontWeight:'700', color:'#1e1e1e88', marginBottom:'2px' },
   subtitle: { fontSize:'13px', color:'#888' },
 
   searchRow:  { display:'flex', gap:'8px', alignItems:'center' },

@@ -1031,6 +1031,7 @@ export default function App() {
         }
       );
       const data = await response.json();
+      console.log("Lex response:", data);
       return data;
     } catch (error) {
       console.error("API error:", error);
@@ -1104,11 +1105,25 @@ export default function App() {
           <div style={appStyle.conversationContainer}>
             <div style={{ position: 'relative', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
               <div style={appStyle.messagesContainer} onScroll={e => setShowFade(e.target.scrollTop > 20)}>
-                {messages.map(msg => (
-                  <div key={msg.id} style={{ ...appStyle.messageRow, justifyContent: msg.type === 'user' ? 'flex-end' : 'flex-start' }}>
-                    <div style={{ ...appStyle.messageBubble, ...(msg.type === 'user' ? appStyle.userBubble : appStyle.assistantBubble) }}>{msg.text}</div>
-                  </div>
-                ))}
+                {messages.map(msg => {
+                  
+                  // Extract image URL if present
+                  const url = msg.text ? msg.text.match(/https?:\/\/[^\s]+/i) : null;
+                  const caption = msg.text ? msg.text.replace(/https?:\/\/[^\s]+/gi, '') : '';
+                  return (
+                    <div key={msg.id} style={{ ...appStyle.messageRow, justifyContent: msg.type === 'user' ? 'flex-end' : 'flex-start' }}>
+                      <div style={{ ...appStyle.messageBubble, ...(msg.type === 'user' ? appStyle.userBubble : appStyle.assistantBubble) }}>
+                        
+                        {/* Text without URL */}
+                        {caption && <div>{caption}</div>}
+
+                        {/* Image */}
+                        {url && (
+                        <img src={url[0]} alt="product" style={{ marginTop: '8px', maxWidth: '220px', borderRadius: '10px' }} /> )}
+                      </div>
+                    </div>
+                  );
+                })}
                 {isLoading && (
                   <div style={{ ...appStyle.messageRow, justifyContent: 'flex-start' }}>
                     <div style={{ ...appStyle.messageBubble, ...appStyle.assistantBubble, display: 'flex', gap: '5px', padding: '18px' }}>

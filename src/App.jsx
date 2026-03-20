@@ -168,9 +168,64 @@ function UploadModal({ onClose }) {
     if (f) setFile(f);
   };
 
-  const handleSubmit = () => {
+  /*const handleSubmit = () => {
     if (!file) return;
     setSubmitted(true);
+    setTimeout(() => onClose(), 1800);
+  };*/
+
+  function removeChar(item) {
+    return item.replace(/[*\,]/g, "").trim();
+  }
+
+  function parseFile(text, fileName) {
+    const lines = text.split(/\r?\n/);
+    if (fileName.endsWith(".csv")) {
+      return lines
+      .flatMap(line => line.split(","))
+      .map(line => removeChar(line.split(",")[0]))
+      .filter(line => line);
+    } else if (fileName.endsWith(".txt")) {
+      return lines 
+      .flatMap(line => line.split(","))
+      .map(line => removeChar(line))
+      .filter(line => line);
+    }
+    return [];
+  }
+
+  const handleSubmit = async () => {
+    if (!file) return;
+    setSubmitted(true);
+  
+    try {
+      // Read and parse the file
+      const text = await file.text();
+      const items = parseFile(text, file.name);
+
+      console.log("Parsed items:", items);
+  
+      // Call API Gateway 
+      const response = await fetch(
+        "https://3r2pvmau42.execute-api.us-east-1.amazonaws.com/upload", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ items })
+      });
+
+      if (!response.ok) {
+        throw new Error("API request failed");
+      }
+  
+      const data = await response.json();
+  
+      console.log("Route URL:", data.route_url);
+  
+    } catch (err) {
+      console.error("Error uploading file:", err);
+      alert("Failed to process the shopping list.");
+    }
+
     setTimeout(() => onClose(), 1800);
   };
 

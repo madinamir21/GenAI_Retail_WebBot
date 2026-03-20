@@ -155,7 +155,7 @@ function getOrderSummary(items) {
 }
 
 // ─── Upload Modal ─────────────────────────────────────────────────────────────
-function UploadModal({ onClose }) {
+function UploadModal({ onClose, setMessages }) {
   const [dragOver, setDragOver] = useState(false);
   const [file, setFile] = useState(null);
   const [submitted, setSubmitted] = useState(false);
@@ -167,12 +167,6 @@ function UploadModal({ onClose }) {
     const f = e.dataTransfer.files[0];
     if (f) setFile(f);
   };
-
-  /*const handleSubmit = () => {
-    if (!file) return;
-    setSubmitted(true);
-    setTimeout(() => onClose(), 1800);
-  };*/
 
   function removeChar(item) {
     return item.replace(/[*\,]/g, "").trim();
@@ -202,8 +196,6 @@ function UploadModal({ onClose }) {
       // Read and parse the file
       const text = await file.text();
       const items = parseFile(text, file.name);
-
-      console.log("Parsed items:", items);
   
       // Call API Gateway 
       const response = await fetch(
@@ -217,9 +209,18 @@ function UploadModal({ onClose }) {
         throw new Error("API request failed");
       }
   
-      const data = await response.json();
+      const raw = await response.json();
+      const data = raw.body ? JSON.parse(raw.body) : raw;
+
+      if (data.messages) {
+        const assistantMessages = data.messages.map((msg, idx) => ({
+          id: Date.now() + idx,
+          type: 'assistant',
+          text: msg,
+        }));
   
-      console.log("Route URL:", data.route_url);
+        setMessages(prev => [...prev, ...assistantMessages]);
+      }
   
     } catch (err) {
       console.error("Error uploading file:", err);
@@ -1054,6 +1055,7 @@ export default function App() {
   const [settings, setSettings] = useState({ ...MOCK_SETTINGS });
   const toggleSetting = (key) => setSettings(s => ({ ...s, [key]: !s[key] }));
   const [showFade, setShowFade] = useState(false);
+  const [expandedImage, setExpandedImage] = useState(null);
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
@@ -1174,7 +1176,7 @@ export default function App() {
 
                         {/* Image */}
                         {url && (
-                        <img src={url[0]} alt="product" style={{ marginTop: '8px', maxWidth: '220px', borderRadius: '10px' }} /> )}
+                        <img src={url[0]} alt="product" style={{ marginTop: '8px', maxWidth: '220px', borderRadius: '10px' }} onClick={() => setExpandedImage(url[0])} /> )}
                       </div>
                     </div>
                   );
@@ -1196,6 +1198,12 @@ export default function App() {
                 <button className="send-btn" style={appStyle.sendBtn} onClick={handleSendMessage} disabled={!inputValue.trim() || isLoading}><Icons.MessageSquare /></button>
               </div>
             </div>
+            {expandedImage && (
+              <div onClick={() => setExpandedImage(null)} style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0,0,0,0.8)',
+                display: 'flex',justifyContent: 'center', alignItems: 'center', zIndex: 999 }} >
+                <img src={expandedImage} alt="expanded" style={{ maxWidth: '90%', maxHeight: '90%', borderRadius: '12px'}} />
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -1221,7 +1229,7 @@ export default function App() {
         *::-webkit-scrollbar{display:none}
       `}</style>
 
-      {showUpload && <UploadModal onClose={() => setShowUpload(false)} />}
+      {showUpload && <UploadModal onClose={() => setShowUpload(false)} setMessages={setMessages} />}
 
       {/* Sidebar */}
       <aside style={appStyle.sidebar}>

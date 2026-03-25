@@ -55,11 +55,6 @@ amplifytools.xcconfig
 **.sample
 #amplify-do-not-edit-end
 
-# dev tool config
-.claude/
-.mcp.json
-CLAUDE.md
-
 # environment variables
 .env
 .env.*

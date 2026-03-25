@@ -115,7 +115,7 @@ Object.entries(CLICK_CATEGORIES).forEach(([section, items]) => {
   items.forEach(item => { ITEM_TO_SECTION[item.toLowerCase()] = section; });
 });
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// Helpers
 
 function normToPercent(normX, normY) {
   return {
@@ -141,7 +141,7 @@ function getSectionCenter(sectionName) {
   return { cx, cy };
 }
 
-// ─── Tooltip ──────────────────────────────────────────────────────────────────
+// Tooltip
 
 function CategoryTooltip({ section, clickX, clickY, containerRef, onClose }) {
   const tooltipRef = useRef(null);
@@ -217,7 +217,7 @@ function CategoryTooltip({ section, clickX, clickY, containerRef, onClose }) {
   );
 }
 
-// ─── StoreMap ─────────────────────────────────────────────────────────────────
+// StoreMap
 
 export default function StoreMap() {
   const containerRef = useRef(null);
@@ -228,7 +228,7 @@ export default function StoreMap() {
   const [highlightSection,  setHighlightSection]  = useState(null);
   const [searchError,       setSearchError]       = useState('');
 
-  // ── click on a section rect ──────────────────────────────────────────────
+  // click on a section rect
   const handleRectClick = useCallback((section, e) => {
     e.stopPropagation();
     const rect = containerRef.current.getBoundingClientRect();
@@ -237,7 +237,7 @@ export default function StoreMap() {
     setSearchDot(null);
   }, []);
 
-  // ── search ───────────────────────────────────────────────────────────────
+  // search
   const handleSearch = useCallback(() => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) { setSearchDot(null); setSearchError(''); setHighlightSection(null); return; }
@@ -281,7 +281,7 @@ export default function StoreMap() {
         @keyframes ring   { 0%{transform:translate(-50%,-50%) scale(1);opacity:0.65} 100%{transform:translate(-50%,-50%) scale(3);opacity:0} }
       `}</style>
 
-      {/* ── Header ─────────────────────────────────────────────────────── */}
+      {/* Header */}
       <div style={s.header}>
         <div>
           <h2 style={s.title}>Store Map</h2>
@@ -310,7 +310,7 @@ export default function StoreMap() {
         </div>
       </div>
 
-      {/* ── Result / error banner ───────────────────────────────────────── */}
+      {/* Result / error banner */}
       {searchDot && (
         <div style={s.resultBanner}>
           <span>📍</span>
@@ -326,7 +326,7 @@ export default function StoreMap() {
         </div>
       )}
 
-      {/* ── Map ─────────────────────────────────────────────────────────── */}
+      {/* Map */}
       <div style={s.mapOuter}>
         {/* aspect-ratio box: 1920 × 878 */}
         <div
@@ -407,7 +407,7 @@ export default function StoreMap() {
         </div>
       </div>
 
-      {/* ── Legend ──────────────────────────────────────────────────────── */}
+      {/* Legend */}
       <div style={s.legend}>
         <span style={s.legendDot}/>
         <span style={s.legendText}>Hover to highlight · Click to see items · Search to locate a product</span>
@@ -416,7 +416,7 @@ export default function StoreMap() {
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
+// Styles
 
 const s = {
   page: { display:'flex', flexDirection:'column', width:'100%', height:'100%', gap:'10px' },

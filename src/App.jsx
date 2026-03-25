@@ -1,7 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import StoreMap from './StoreMap.jsx'
+import AuthScreen from './AuthScreen.jsx'
+import { useUserData } from './hooks/useUserData.js'
 
-// ─── SVG Icon Library ────────────────────────────────────────────────────────
+// SVG Icons
 const Icons = {
   User: () => (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -58,7 +60,7 @@ const Icons = {
   ),
 };
 
-// ─── Mock Data ────────────────────────────────────────────────────────────────
+// Mock Data
 const MOCK_ORDERS = [
   {
     id: '10247', date: 'November 15, 2025', status: 'In Progress',
@@ -108,7 +110,7 @@ const SAVED_CARDS = [
   { id: 2, label: 'MC ending 5678', name: 'Jason Zhang', number: '**** **** **** 5678', expMonth: '09', expYear: '27', cvv: '***' },
 ];
 
-// ─── Mock User / Preferences / Settings ──────────────────────────────────────
+// Mock User / Preferences / Settings
 // TODO: Replace with real API calls when backend is ready
 const MOCK_USER = {
   name: 'Jason',
@@ -154,7 +156,7 @@ function getOrderSummary(items) {
   return extra > 0 ? `${top}, +${extra} more items` : top;
 }
 
-// ─── Upload Modal ─────────────────────────────────────────────────────────────
+// Upload Modal
 function UploadModal({ onClose, setMessages }) {
   const [dragOver, setDragOver] = useState(false);
   const [file, setFile] = useState(null);
@@ -305,7 +307,7 @@ const mStyle = {
   successSub: { fontSize: '14px', color: '#888' },
 };
 
-// ─── Address Selector Modal ───────────────────────────────────────────────────
+// Address Selector Modal
 function AddressSelectorModal({ onSelect, onClose }) {
   return (
     <div style={mStyle.overlay} onClick={onClose}>
@@ -334,7 +336,7 @@ const addrStyle = {
   detail: { fontSize: '13px', color: '#666' },
 };
 
-// ─── Card Selector Modal ──────────────────────────────────────────────────────
+// Card Selector Modal
 function CardSelectorModal({ onSelect, onClose }) {
   return (
     <div style={mStyle.overlay} onClick={onClose}>
@@ -355,9 +357,14 @@ function CardSelectorModal({ onSelect, onClose }) {
   );
 }
 
-// ─── Order History ────────────────────────────────────────────────────────────
-function OrderHistory() {
+// Order History
+function OrderHistory({ orders = [] }) {
   const [expanded, setExpanded] = useState(null);
+  // Normalize orders — items may be a JSON string from DynamoDB or an array from mock data
+  const normalizedOrders = orders.map(o => ({
+    ...o,
+    items: typeof o.items === 'string' ? JSON.parse(o.items) : (o.items || []),
+  }));
   return (
     <div style={pageStyle.container}>
       <div style={pageStyle.header}>
@@ -365,7 +372,10 @@ function OrderHistory() {
         <p style={pageStyle.subtitle}>View your past shopping trips and reorder favorites</p>
       </div>
       <div style={pageStyle.list}>
-        {MOCK_ORDERS.map(order => (
+        {normalizedOrders.length === 0 && (
+          <p style={{ color: '#aaa', fontSize: '15px', textAlign: 'center', marginTop: '40px' }}>No orders yet.</p>
+        )}
+        {normalizedOrders.map(order => (
           <div key={order.id} style={pageStyle.card}>
             <div style={pageStyle.cardTop}>
               <div>
@@ -445,7 +455,7 @@ const pageStyle = {
   totalBold: { fontWeight: '700', color: '#1a1a1a' },
 };
 
-// ─── Shopping Cart ────────────────────────────────────────────────────────────
+// Shopping Cart
 function Cart({ cartItems, onCheckout, onBack }) {
   const subtotal = cartItems.reduce((s, i) => s + i.qty * i.price, 0);
   const tax = subtotal * 0.095;
@@ -493,7 +503,7 @@ const cartStyle = {
   backBtn: { padding: '13px', background: '#FFD4D4', border: 'none', borderRadius: '10px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', color: '#7a0000' },
 };
 
-// ─── Address Form ─────────────────────────────────────────────────────────────
+// Address Form
 function AddressForm({ title, data, onChange, onContinue, onBack, extraAction }) {
   const [showSelector, setShowSelector] = useState(false);
   const handleSelect = (addr) => { onChange({ ...addr }); setShowSelector(false); };
@@ -542,7 +552,7 @@ const formStyle = {
   actionBtn: { width: '195px', padding: '10px', background: '#B5DCF7', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', color: '#1a3a5c' },
 };
 
-// ─── Payment Form ─────────────────────────────────────────────────────────────
+// Payment Form
 function PaymentForm({ data, onChange, onReview, onBack }) {
   const [showSelector, setShowSelector] = useState(false);
   const months = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0'));
@@ -590,7 +600,7 @@ function PaymentForm({ data, onChange, onReview, onBack }) {
   );
 }
 
-// ─── Review Page ──────────────────────────────────────────────────────────────
+// Review Page
 function ReviewPage({ shipping, billing, payment, cartItems, onConfirm, onBack }) {
   const subtotal = cartItems.reduce((s, i) => s + i.qty * i.price, 0);
   const tax = subtotal * 0.095;
@@ -638,7 +648,7 @@ const reviewStyle = {
   totalRow: { display: 'flex', justifyContent: 'space-between', marginBottom: '5px', color: '#444', fontSize: '14px' },
 };
 
-// ─── Confirmation ─────────────────────────────────────────────────────────────
+// Confirmation
 function ConfirmationPage({ onBackToChat }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '16px', paddingTop: '80px' }}>
@@ -656,7 +666,7 @@ function ConfirmationPage({ onBackToChat }) {
   );
 }
 
-// ─── Toggle Switch ────────────────────────────────────────────────────────────
+// Toggle Switch
 function Toggle({ on, onChange }) {
   return (
     <button
@@ -674,7 +684,7 @@ function Toggle({ on, onChange }) {
   );
 }
 
-// ─── Settings Page ────────────────────────────────────────────────────────────
+// Settings Page
 function SettingsPage({ onViewProfile, settings, onToggle }) {
   const items = [
     { key: 'notifications', label: 'Notifications' },
@@ -710,7 +720,7 @@ const settingsStyle = {
   editLink: { background: 'none', border: 'none', fontSize: '15px', fontWeight: '600', color: '#1a1a1a', textDecoration: 'underline', cursor: 'pointer' },
 };
 
-// ─── Diet Options + Helpers ───────────────────────────────────────────────────
+// Diet Options + Helpers
 const DIET_OPTIONS = {
   type: ['Vegetarian', 'Vegan', 'Pescatarian', 'Halal', 'Kosher'],
   restrictions: ['Gluten Free', 'Dairy Free', 'Nut Free', 'Lactose Free', 'Soy Free', 'Low Sodium', 'No High Fructose'],
@@ -764,11 +774,30 @@ function InlineInput({ value, onChange, onSave, onCancel }) {
   );
 }
 
-// ─── Profile Page ─────────────────────────────────────────────────────────────
-function ProfilePage({ onBack }) {
-  const [user, setUser] = useState({ ...MOCK_USER });
-  const [prefs, setPrefs] = useState({ ...MOCK_PREFERENCES });
-  const [sustainabilityOn, setSustainabilityOn] = useState(MOCK_PREFERENCES.sustainability.enabled);
+// Profile Page
+function ProfilePage({ onBack, profile: profileProp, preferences: prefsProp, addresses: addressesProp = [], paymentMethods: paymentsProp = [], onSaveProfile, onSavePreferences, onAddAddress, onRemoveAddress, onAddPaymentMethod, onRemovePaymentMethod }) {
+  const [user, setUser] = useState({
+    name: profileProp?.displayName || '',
+    displayName: profileProp?.displayName || '',
+    email: profileProp?.email || '',
+    phone: { country: profileProp?.phoneCountry || 'US +1', number: profileProp?.phoneNumber || '' },
+    avatar: null,
+    addresses: addressesProp,
+    paymentMethods: paymentsProp.map(p => ({ id: p.id, type: p.cardType, last4: p.last4, isDefault: p.isDefault })),
+    linkedAccounts: [{ id: 'google', label: 'Google', linked: false }, { id: 'instagram', label: 'Instagram', linked: false }],
+  });
+  const [prefs, setPrefs] = useState({
+    diet: {
+      type: { value: prefsProp?.dietType || '', lastUpdated: '' },
+      restrictions: { values: prefsProp?.dietRestrictions || [], lastUpdated: '' },
+      lifestyle: { values: prefsProp?.dietLifestyle || [], lastUpdated: '' },
+    },
+    sustainability: {
+      enabled: prefsProp?.sustainabilityOn || false,
+      priorities: prefsProp?.sustainabilityPriorities || [],
+    },
+  });
+  const [sustainabilityOn, setSustainabilityOn] = useState(prefsProp?.sustainabilityOn || false);
   const [editField, setEditField] = useState(null);
   const [editValue, setEditValue] = useState('');
   const [avatarSrc, setAvatarSrc] = useState(null);
@@ -778,7 +807,7 @@ function ProfilePage({ onBack }) {
   const [addingPayment, setAddingPayment] = useState(false);
   const [newPayment, setNewPayment] = useState({ type: '', last4: '' });
   const [editPrefKey, setEditPrefKey] = useState(null);
-  const [selectedPriorities, setSelectedPriorities] = useState([...MOCK_PREFERENCES.sustainability.priorities]);
+  const [selectedPriorities, setSelectedPriorities] = useState(prefsProp?.sustainabilityPriorities || []);
   const [saved, setSaved] = useState(false);
 
   const togglePriority = (p) => setSelectedPriorities(s => s.includes(p) ? s.filter(x => x !== p) : [...s, p]);
@@ -790,17 +819,25 @@ function ProfilePage({ onBack }) {
     else if (field === 'displayName') setUser(u => ({ ...u, displayName: editValue }));
     setEditField(null);
   };
-  const removeAddress = (id) => setUser(u => ({ ...u, addresses: u.addresses.filter(a => a.id !== id) }));
-  const addAddress = () => {
+  const removeAddress = (id) => {
+    setUser(u => ({ ...u, addresses: u.addresses.filter(a => a.id !== id) }));
+    onRemoveAddress?.(id);
+  };
+  const addAddress = async () => {
     if (!newAddr.line1) return;
-    setUser(u => ({ ...u, addresses: [...u.addresses, { ...newAddr, id: Date.now(), isDefault: false }] }));
+    const saved = await onAddAddress?.(newAddr) || { ...newAddr, id: Date.now(), isDefault: false };
+    setUser(u => ({ ...u, addresses: [...u.addresses, saved] }));
     setNewAddr({ label: '', line1: '', city: '', state: '', zip: '', country: 'UNITED STATES' });
     setAddingAddress(false);
   };
-  const removePayment = (id) => setUser(u => ({ ...u, paymentMethods: u.paymentMethods.filter(p => p.id !== id) }));
-  const addPayment = () => {
+  const removePayment = (id) => {
+    setUser(u => ({ ...u, paymentMethods: u.paymentMethods.filter(p => p.id !== id) }));
+    onRemovePaymentMethod?.(id);
+  };
+  const addPayment = async () => {
     if (!newPayment.type || !newPayment.last4) return;
-    setUser(u => ({ ...u, paymentMethods: [...u.paymentMethods, { ...newPayment, id: Date.now(), isDefault: false }] }));
+    const saved = await onAddPaymentMethod?.({ cardType: newPayment.type, last4: newPayment.last4, isDefault: false }) || { ...newPayment, id: Date.now(), isDefault: false };
+    setUser(u => ({ ...u, paymentMethods: [...u.paymentMethods, { id: saved.id, type: saved.cardType || newPayment.type, last4: saved.last4 || newPayment.last4, isDefault: false }] }));
     setNewPayment({ type: '', last4: '' });
     setAddingPayment(false);
   };
@@ -817,7 +854,12 @@ function ProfilePage({ onBack }) {
     });
     setEditPrefKey(null);
   };
-  const handleSave = () => { setSaved(true); setTimeout(() => setSaved(false), 2000); };
+  const handleSave = async () => {
+    await onSaveProfile?.({ displayName: user.displayName, email: user.email, phoneCountry: user.phone?.country, phoneNumber: user.phone?.number });
+    await onSavePreferences?.({ dietType: prefs.diet.type.value, dietRestrictions: prefs.diet.restrictions.values, dietLifestyle: prefs.diet.lifestyle.values, sustainabilityOn, sustainabilityPriorities: selectedPriorities });
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
 
   const GreenTag = ({ label }) => <span style={profStyle.greenTag}>{label}</span>;
 
@@ -854,7 +896,7 @@ function ProfilePage({ onBack }) {
 
       <h1 style={profStyle.title}>Super Awesome Shopper Helper</h1>
 
-      {/* ── MY ACCOUNT ── */}
+      {/* My Account */}
       <div style={profStyle.accountRow}>
         <div style={{ position: 'relative', marginRight: '24px' }}>
           <div style={{ ...profStyle.avatar, cursor: 'pointer' }} onClick={() => avatarInputRef.current.click()}>
@@ -895,7 +937,7 @@ function ProfilePage({ onBack }) {
         </div>
       </div>
 
-      {/* ── ADDRESSES + PAYMENTS ── */}
+      {/* Addresses + Payments */}
       <div style={profStyle.twoCol}>
         <div style={profStyle.colBox}>
           <h3 style={profStyle.colTitle}>MY ADDRESSES</h3>
@@ -966,7 +1008,7 @@ function ProfilePage({ onBack }) {
         </div>
       </div>
 
-      {/* ── PREFERENCES ── */}
+      {/* Preferences */}
       <h2 style={profStyle.sectionHeader}>PREFERENCES</h2>
 
       <h3 style={profStyle.subHeader}>DIET</h3>
@@ -1038,8 +1080,18 @@ const profStyle = {
   backCircle: { position: 'fixed', bottom: '30px', left: '230px', width: '48px', height: '48px', borderRadius: '50%', background: '#3CB371', border: 'none', color: 'white', fontSize: '20px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 3px 10px rgba(0,0,0,0.2)' },
 };
 
-// ─── Main App ─────────────────────────────────────────────────────────────────
+// Main App
 export default function App() {
+  const [authUser, setAuthUser] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('authUser')) } catch { return null }
+  });
+
+  const { profile, preferences, settings: userSettings, addresses, paymentMethods, orders, loading: dataLoading, saveProfile, savePreferences, saveSettings, addAddress, removeAddress, addPaymentMethod, removePaymentMethod } = useUserData(authUser);
+
+  const toggleSetting = async (key) => {
+    await saveSettings({ ...(userSettings || {}), [key]: !(userSettings?.[key]) });
+  };
+
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -1050,10 +1102,8 @@ export default function App() {
   const [shipping, setShipping] = useState({ firstName: '', lastName: '', line1: '', line2: '', city: '', state: '', zip: '' });
   const [billing, setBilling] = useState({ firstName: '', lastName: '', line1: '', line2: '', city: '', state: '', zip: '' });
   const [payment, setPayment] = useState({ name: '', number: '', expMonth: '', expYear: '', cvv: '' });
-  const [cartItems] = useState(MOCK_CART);
+  const [cartItems] = useState([]);
   const cartCount = cartItems.reduce((s, i) => s + i.qty, 0);
-  const [settings, setSettings] = useState({ ...MOCK_SETTINGS });
-  const toggleSetting = (key) => setSettings(s => ({ ...s, [key]: !s[key] }));
   const [showFade, setShowFade] = useState(false);
   const [expandedImage, setExpandedImage] = useState(null);
   const messagesEndRef = useRef(null);
@@ -1136,9 +1186,9 @@ export default function App() {
   const checkoutSteps = ['cart', 'shipping', 'billing', 'payment', 'review'];
 
   const renderContent = () => {
-    if (view === 'settings') return <SettingsPage onViewProfile={() => { setView('profile'); setShowUserMenu(false); }} settings={settings} onToggle={toggleSetting} />;
-    if (view === 'profile') return <ProfilePage onBack={() => setView('chat')} />;
-    if (view === 'orderHistory') return <OrderHistory />;
+    if (view === 'settings') return <SettingsPage onViewProfile={() => { setView('profile'); setShowUserMenu(false); }} settings={userSettings || {}} onToggle={toggleSetting} />;
+    if (view === 'profile') return <ProfilePage onBack={() => setView('chat')} profile={profile} preferences={preferences} addresses={addresses} paymentMethods={paymentMethods} onSaveProfile={saveProfile} onSavePreferences={savePreferences} onAddAddress={addAddress} onRemoveAddress={removeAddress} onAddPaymentMethod={addPaymentMethod} onRemovePaymentMethod={removePaymentMethod} />;
+    if (view === 'orderHistory') return <OrderHistory orders={orders} />;
     if (view === 'map') return <StoreMap />;
     if (view === 'cart') return <Cart cartItems={cartItems} onCheckout={() => setView('shipping')} onBack={goBack} />;
     if (view === 'shipping') return <AddressForm title="Enter Shipping Address" data={shipping} onChange={setShipping} onContinue={() => setView('billing')} onBack={goBack} />;
@@ -1210,6 +1260,8 @@ export default function App() {
     );
   };
 
+  if (!authUser) return <AuthScreen onAuthSuccess={(user) => setAuthUser(user)} />;
+
   return (
     <div style={appStyle.container} onClick={() => showUserMenu && setShowUserMenu(false)}>
       <style>{`
@@ -1254,10 +1306,10 @@ export default function App() {
             <div style={userMenuStyle.dropdown} onClick={e => e.stopPropagation()}>
               <div style={userMenuStyle.top}>
                 <div>
-                  <div style={userMenuStyle.greeting}>Hello, {MOCK_USER.name}</div>
+                  <div style={userMenuStyle.greeting}>Hello, {profile?.displayName || authUser?.displayName || authUser?.email?.split('@')[0] || 'User'}</div>
                   <button style={userMenuStyle.switchBtn} onClick={() => setShowUserMenu(false)}>Switch Profile</button>
                 </div>
-                <button style={userMenuStyle.signOut}>Sign Out</button>
+                <button style={userMenuStyle.signOut} onClick={() => { localStorage.removeItem('authUser'); setAuthUser(null); setShowUserMenu(false); }}>Sign Out</button>
               </div>
               <button
                 style={userMenuStyle.viewProfile}

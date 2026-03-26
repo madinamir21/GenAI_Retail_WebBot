@@ -456,17 +456,59 @@ const pageStyle = {
 };
 
 // Shopping Cart
-function Cart({ cartItems, onCheckout, onBack }) {
+function Cart({ sessionId, onCheckout, onBack }) {
+  const [cartItems, setCartItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  useEffect(() => {
+    const fetchCart = async () => {
+      try {
+        setLoading(true);
+
+        const res = await fetch(
+          "https://yjntp2mq03.execute-api.us-east-1.amazonaws.com/cart",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ sessionId }),
+          }
+        );
+
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+
+        const data = await res.json();
+        setCartItems(data.items || []);
+      } catch (err) {
+        console.error(err);
+        setError("Failed to load cart.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (sessionId) fetchCart();
+  }, [sessionId]);
+
   const subtotal = cartItems.reduce((s, i) => s + i.qty * i.price, 0);
   const tax = subtotal * 0.095;
   const total = subtotal + tax;
+
+  if (loading) return <p style={{ textAlign: "center" }}>Loading cart...</p>;
+  if (error) return <p style={{ textAlign: "center", color: "red" }}>{error}</p>;
+
   return (
     <div style={cartStyle.container}>
       <h1 style={cartStyle.title}>Shopping Cart</h1>
       <div style={cartStyle.items}>
         {cartItems.map(item => (
           <div key={item.id} style={cartStyle.row}>
-            <div style={cartStyle.emoji}>{item.emoji}</div>
+            <div style={cartStyle.imageContainer}>
+              {item.image_url ? ( <img src={item.image_url} alt={item.name} style={cartStyle.image} />) : (
+                <img src="https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg"
+                alt="No Image" style={cartStyle.image} />
+              )}
+            </div>
             <span style={cartStyle.itemName}>{item.name}</span>
             <span style={cartStyle.qty}>Qt: {item.qty}</span>
             <span style={cartStyle.price}>{fmt(item.qty * item.price)}</span>
@@ -491,7 +533,8 @@ const cartStyle = {
   title: { fontSize: '26px', fontWeight: '700', textAlign: 'center', marginBottom: '28px', color: '#1a1a1a' },
   items: { display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '28px' },
   row: { display: 'flex', alignItems: 'center', gap: '16px', padding: '16px 20px', background: '#fff', borderRadius: '12px', border: '1px solid #eee', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' },
-  emoji: { fontSize: '42px', width: '60px', textAlign: 'center', flexShrink: 0 },
+  imageContainer: { width: '60px', textAlign: 'center', flexShrink: 0 },
+  image: { width: '48px', height: '48px', objectFit: 'contain', borderRadius: '8px' }, 
   itemName: { flex: 1, fontSize: '15px', fontWeight: '500', color: '#1a1a1a' },
   qty: { fontSize: '14px', color: '#777', minWidth: '58px', textAlign: 'center' },
   price: { fontSize: '16px', fontWeight: '700', color: '#1a1a1a', minWidth: '65px', textAlign: 'right' },
@@ -1186,7 +1229,7 @@ export default function App() {
     if (view === 'profile') return <ProfilePage onBack={() => setView('chat')} profile={profile} preferences={preferences} addresses={addresses} paymentMethods={paymentMethods} onSaveProfile={saveProfile} onSavePreferences={savePreferences} onAddAddress={addAddress} onRemoveAddress={removeAddress} onAddPaymentMethod={addPaymentMethod} onRemovePaymentMethod={removePaymentMethod} />;
     if (view === 'orderHistory') return <OrderHistory orders={orders} />;
     if (view === 'map') return <StoreMap />;
-    if (view === 'cart') return <Cart cartItems={cartItems} onCheckout={() => setView('shipping')} onBack={goBack} />;
+    if (view === 'cart') return <Cart sessionId={sessionId} onCheckout={() => setView('shipping')} onBack={goBack} />;
     if (view === 'shipping') return <AddressForm title="Enter Shipping Address" data={shipping} onChange={setShipping} onContinue={() => setView('billing')} onBack={goBack} />;
     if (view === 'billing') return <AddressForm title="Enter Billing Address" data={billing} onChange={setBilling} onContinue={() => setView('payment')} onBack={goBack} extraAction={{ label: 'Same as Shipping', fn: () => { setBilling({ ...shipping }); setView('payment'); } }} />;
     if (view === 'payment') return <PaymentForm data={payment} onChange={setPayment} onReview={() => setView('review')} onBack={goBack} />;

@@ -1114,17 +1114,13 @@ export default function App() {
 
   const navigate = (v) => { setView(v); setActiveNav(v); };
 
-  // Get existing sessionId from localStorage
-  let sessionId = localStorage.getItem("sessionId");
-
-  // Generate a new sessionId if none exists
-  if (!sessionId) {
-    sessionId = crypto.randomUUID();
-    localStorage.setItem("sessionId", sessionId);
-  }
+  // Get set session id equal to user id
+  const sessionId = authUser?.userId;
 
   // AWS Bedrock integration
   const sendMessage = async (msg) => {
+    console.log("Sending message:", msg);
+
     try {
       const response = await fetch(
         "https://bsqk8gu8cc.execute-api.us-east-1.amazonaws.com/chat",
@@ -1309,7 +1305,7 @@ export default function App() {
                   <div style={userMenuStyle.greeting}>Hello, {profile?.displayName || authUser?.displayName || authUser?.email?.split('@')[0] || 'User'}</div>
                   <button style={userMenuStyle.switchBtn} onClick={() => setShowUserMenu(false)}>Switch Profile</button>
                 </div>
-                <button style={userMenuStyle.signOut} onClick={() => { localStorage.removeItem('authUser'); setAuthUser(null); setShowUserMenu(false); }}>Sign Out</button>
+                <button style={userMenuStyle.signOut} onClick={() => { localStorage.removeItem('authUser'); localStorage.removeItem('sessionId'); setAuthUser(null); setMessages([]); setShowUserMenu(false); }}>Sign Out</button>
               </div>
               <button
                 style={userMenuStyle.viewProfile}

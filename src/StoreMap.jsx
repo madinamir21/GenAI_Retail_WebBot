@@ -1,7 +1,78 @@
 import React, { useState, useRef, useCallback } from 'react';
-import storeMapSvg from './assets/STORE_MAP_FIGMA.svg';
 
+
+// Category color palette 
+const SECTION_COLORS = {
+  "FRUITS":             { bg:'#d4edda', border:'#52a96e', text:'#1a5c35' },
+  "VEGETABLES":         { bg:'#d4edda', border:'#52a96e', text:'#1a5c35' },
+  "EGGS":               { bg:'#d4edda', border:'#52a96e', text:'#1a5c35' },
+  "MEATS":              { bg:'#d4edda', border:'#52a96e', text:'#1a5c35' },
+  "SEAFOOD":            { bg:'#d4edda', border:'#52a96e', text:'#1a5c35' },
+  "DAIRY":              { bg:'#d4edda', border:'#52a96e', text:'#1a5c35' },
+  "FROZEN FOODS":       { bg:'#dbeafe', border:'#3b82f6', text:'#1e3a5f' },
+  "ICE CREAMS":         { bg:'#dbeafe', border:'#3b82f6', text:'#1e3a5f' },
+  "BREADS":             { bg:'#fef9c3', border:'#ca8a04', text:'#5c3a00' },
+  "CAKES":              { bg:'#fef9c3', border:'#ca8a04', text:'#5c3a00' },
+  "BAKING MIXES":       { bg:'#fef9c3', border:'#ca8a04', text:'#5c3a00' },
+  "FLOURS":             { bg:'#fef9c3', border:'#ca8a04', text:'#5c3a00' },
+  "SUGARS":             { bg:'#fef9c3', border:'#ca8a04', text:'#5c3a00' },
+  "BREAKFAST CEREALS":  { bg:'#fef9c3', border:'#ca8a04', text:'#5c3a00' },
+  "PASTAS":             { bg:'#fef9c3', border:'#ca8a04', text:'#5c3a00' },
+  "RICES":              { bg:'#fef9c3', border:'#ca8a04', text:'#5c3a00' },
+  "CANDIES":            { bg:'#ffe4cc', border:'#ea7c1e', text:'#5c2800' },
+  "CHOCOLATE":          { bg:'#ffe4cc', border:'#ea7c1e', text:'#5c2800' },
+  "BARS":               { bg:'#ffe4cc', border:'#ea7c1e', text:'#5c2800' },
+  "SALTY SNACKS":       { bg:'#ffe4cc', border:'#ea7c1e', text:'#5c2800' },
+  "DRIED FRUITS":       { bg:'#ffe4cc', border:'#ea7c1e', text:'#5c2800' },
+  "SODAS":              { bg:'#ede9fe', border:'#7c3aed', text:'#2e1065' },
+  "WATERS":             { bg:'#ede9fe', border:'#7c3aed', text:'#2e1065' },
+  "ALCOHOLIC BEVERAGES":{ bg:'#ede9fe', border:'#7c3aed', text:'#2e1065' },
+  "COFFEES":            { bg:'#ede9fe', border:'#7c3aed', text:'#2e1065' },
+  "TEAS":               { bg:'#ede9fe', border:'#7c3aed', text:'#2e1065' },
+  "CONDIMENTS":         { bg:'#fee2e2', border:'#dc2626', text:'#5c0000' },
+  "CANNED FOOD":        { bg:'#fee2e2', border:'#dc2626', text:'#5c0000' },
+  "DIPS":               { bg:'#fee2e2', border:'#dc2626', text:'#5c0000' },
+  "JAMS":               { bg:'#fee2e2', border:'#dc2626', text:'#5c0000' },
+  "SPREADS":            { bg:'#fee2e2', border:'#dc2626', text:'#5c0000' },
+  "HONEYS":             { bg:'#fee2e2', border:'#dc2626', text:'#5c0000' },
+  "SPICES":             { bg:'#fee2e2', border:'#dc2626', text:'#5c0000' },
+  "VEGETABLE OILS":     { bg:'#fee2e2', border:'#dc2626', text:'#5c0000' },
+  "BABY FOODS":         { bg:'#f1f5f9', border:'#94a3b8', text:'#334155' },
+  "DELI":               { bg:'#f1f5f9', border:'#94a3b8', text:'#334155' },
+};
+
+
+const DEFAULT_COLOR = { bg:'#f0faf4', border:'#3CB371', text:'#1a5c35' };
+const getSectionColor = s => SECTION_COLORS[s] || DEFAULT_COLOR;
+
+
+const LEGEND = [
+  { label:'Fresh & Produce', bg:'#d4edda', border:'#52a96e' },
+  { label:'Frozen',          bg:'#dbeafe', border:'#3b82f6' },
+  { label:'Bakery & Grains', bg:'#fef9c3', border:'#ca8a04' },
+  { label:'Snacks',          bg:'#ffe4cc', border:'#ea7c1e' },
+  { label:'Drinks',          bg:'#ede9fe', border:'#7c3aed' },
+  { label:'Pantry',          bg:'#fee2e2', border:'#dc2626' },
+  { label:'Other',           bg:'#f1f5f9', border:'#94a3b8' },
+];
+
+
+const SHORT_LABELS = {
+  'ALCOHOLIC BEVERAGES':'ALCOHOL',
+  'BREAKFAST CEREALS':  'CEREALS',
+  'VEGETABLE OILS':     'OILS',
+  'SALTY SNACKS':       'SNACKS',
+  'DRIED FRUITS':       'DR.FRUITS',
+  'FROZEN FOODS':       'FROZEN',
+  'CANNED FOOD':        'CANNED',
+  'BABY FOODS':         'BABY',
+};
+const shortLabel = n => SHORT_LABELS[n] || n;
+
+
+// Data 
 const Y_OFFSET = 0.115;
+
 
 const SECTION_BOUNDS = {
   "ALCOHOLIC BEVERAGES": [
@@ -70,6 +141,7 @@ const SECTION_BOUNDS = {
   "WATERS":            [{ x_min:0.3569, y_min:0.2446, x_max:0.3802, y_max:0.8653, center_x:0.3685, center_y:0.5549 }],
 };
 
+
 const CLICK_CATEGORIES = {
   "ALCOHOLIC BEVERAGES": ["Alcoholic Beverages","Beers","Ciders","Distilled Beverages","Hard Seltzers","Liqueurs","Perry","Premixed Alcoholic Beverages","Rum Based Cocktail","Sake","Whiskey Based Cocktail","Wine Based Drinks","Wines"],
   "BABY FOODS":          ["Baby Foods","Baby Milks","Cereals For Babies"],
@@ -109,29 +181,30 @@ const CLICK_CATEGORIES = {
   "WATERS":              ["Carbonated Waters","Drinking Water","Flavored Waters","Mineral Waters","Waters"],
 };
 
-// Flat lookup: "fresh tomatoes" → "VEGETABLES"
+
 const ITEM_TO_SECTION = {};
 Object.entries(CLICK_CATEGORIES).forEach(([section, items]) => {
   items.forEach(item => { ITEM_TO_SECTION[item.toLowerCase()] = section; });
 });
 
+
 // Helpers
 
+
 function normToPercent(normX, normY) {
-  return {
-    left: `${normX * 100}%`,
-    top: `${((normY - Y_OFFSET) / 1.0) * 100}%`,
-  };
+  return { left:`${normX * 100}%`, top:`${((normY - Y_OFFSET) / 1.0) * 100}%` };
 }
+
 
 function normToPercentRect(x_min, y_min, x_max, y_max) {
   return {
-    left: `${x_min * 100}%`,
-    top: `${((y_min - Y_OFFSET) / 1.0) * 100}%`,
-    width: `${(x_max - x_min) * 100}%`,
+    left:   `${x_min * 100}%`,
+    top:    `${((y_min - Y_OFFSET) / 1.0) * 100}%`,
+    width:  `${(x_max - x_min) * 100}%`,
     height: `${((y_max - y_min) / 1.0) * 100}%`,
   };
 }
+
 
 function getSectionCenter(sectionName) {
   const rects = SECTION_BOUNDS[sectionName];
@@ -141,74 +214,49 @@ function getSectionCenter(sectionName) {
   return { cx, cy };
 }
 
-// Tooltip
+
+// Tooltip 
+
 
 function CategoryTooltip({ section, clickX, clickY, containerRef, onClose }) {
   const tooltipRef = useRef(null);
   const [pos, setPos] = useState(null);
   const items = CLICK_CATEGORIES[section] || [];
+  const color = getSectionColor(section);
 
-  // Position after first render so we know the tooltip dimensions
+
   const measuredRef = useCallback(node => {
     if (!node || !containerRef.current) return;
     tooltipRef.current = node;
-    const container = containerRef.current;
-    const cw = container.offsetWidth;
-    const ch = container.offsetHeight;
-    const tw = node.offsetWidth;
-    const th = node.offsetHeight;
-
-    let left = clickX + 14;
-    let top  = clickY - 10;
-    if (left + tw > cw - 6) left = clickX - tw - 14;
-    if (top + th > ch - 6)  top  = ch - th - 6;
-    if (top < 4)   top  = 4;
-    if (left < 4)  left = 4;
+    const c = containerRef.current;
+    const tw = node.offsetWidth, th = node.offsetHeight;
+    let left = clickX + 14, top = clickY - 10;
+    if (left + tw > c.offsetWidth  - 6) left = clickX - tw - 14;
+    if (top  + th > c.offsetHeight - 6) top  = c.offsetHeight - th - 6;
+    if (top  < 4) top  = 4;
+    if (left < 4) left = 4;
     setPos({ left, top });
   }, [clickX, clickY, containerRef]);
 
+
   return (
-    <div
-      ref={measuredRef}
-      style={{
-        position: 'absolute',
-        left: pos ? pos.left : clickX + 14,
-        top:  pos ? pos.top  : clickY - 10,
-        zIndex: 100,
-        background: 'white',
-        border: '2px solid #3CB371',
-        borderRadius: '10px',
-        boxShadow: '0 6px 28px rgba(0,0,0,0.15)',
-        padding: '12px 14px',
-        maxWidth: '230px',
-        minWidth: '150px',
-        pointerEvents: 'auto',
-        opacity: pos ? 1 : 0,            // invisible until positioned
-        animation: pos ? 'ttIn 0.14s ease-out forwards' : 'none',
-      }}
-    >
-      {/* Header row */}
+    <div ref={measuredRef} style={{
+      position:'absolute', left: pos ? pos.left : clickX+14, top: pos ? pos.top : clickY-10,
+      zIndex:100, background:'white', border:`2px solid ${color.border}`,
+      borderRadius:'12px', boxShadow:'0 8px 32px rgba(0,0,0,0.14)',
+      padding:'12px 14px', maxWidth:'240px', minWidth:'160px',
+      pointerEvents:'auto', opacity: pos ? 1 : 0,
+      animation: pos ? 'ttIn 0.14s ease-out forwards' : 'none',
+    }}>
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'8px' }}>
-        <span style={{ fontSize:'11px', fontWeight:'800', color:'#3CB371', textTransform:'uppercase', letterSpacing:'0.6px' }}>
+        <span style={{ fontSize:'11px', fontWeight:'800', color:color.border, textTransform:'uppercase', letterSpacing:'0.7px' }}>
           {section}
         </span>
-        <button
-          onClick={onClose}
-          style={{ background:'none', border:'none', cursor:'pointer', color:'#bbb', fontSize:'17px', lineHeight:1, padding:'0 0 0 8px' }}
-        >×</button>
+        <button onClick={onClose} style={{ background:'none', border:'none', cursor:'pointer', color:'#bbb', fontSize:'18px', lineHeight:1, padding:'0 0 0 8px' }}>×</button>
       </div>
-
-      {/* Item tags */}
       <div style={{ display:'flex', flexWrap:'wrap', gap:'4px' }}>
         {items.map(item => (
-          <span key={item} style={{
-            fontSize:'11px',
-            background:'#f0faf4',
-            color:'#1a5c35',
-            borderRadius:'4px',
-            padding:'2px 7px',
-            fontWeight:'500',
-          }}>
+          <span key={item} style={{ fontSize:'11px', background:color.bg, color:color.text, borderRadius:'4px', padding:'2px 7px', fontWeight:'500' }}>
             {item}
           </span>
         ))}
@@ -217,69 +265,64 @@ function CategoryTooltip({ section, clickX, clickY, containerRef, onClose }) {
   );
 }
 
+
 // StoreMap
+
 
 export default function StoreMap() {
   const containerRef = useRef(null);
-  const [tooltip,           setTooltip]           = useState(null);   // { section, x, y }
-  const [hoveredSection,    setHoveredSection]    = useState(null);
-  const [searchQuery,       setSearchQuery]       = useState('');
-  const [searchDot,         setSearchDot]         = useState(null);   // { section, cx, cy, label }
-  const [highlightSection,  setHighlightSection]  = useState(null);
-  const [searchError,       setSearchError]       = useState('');
+  const [tooltip,          setTooltip]          = useState(null);
+  const [hoveredSection,   setHoveredSection]   = useState(null);
+  const [searchQuery,      setSearchQuery]      = useState('');
+  const [searchDot,        setSearchDot]        = useState(null);
+  const [highlightSection, setHighlightSection] = useState(null);
+  const [searchError,      setSearchError]      = useState('');
 
-  // click on a section rect
+
   const handleRectClick = useCallback((section, e) => {
     e.stopPropagation();
     const rect = containerRef.current.getBoundingClientRect();
     setTooltip({ section, x: e.clientX - rect.left, y: e.clientY - rect.top });
-    setHighlightSection(null);
-    setSearchDot(null);
+    setHighlightSection(null); setSearchDot(null);
   }, []);
 
-  // search
+
   const handleSearch = useCallback(() => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) { setSearchDot(null); setSearchError(''); setHighlightSection(null); return; }
-
-    // exact match
     let section = ITEM_TO_SECTION[q];
-
-    // partial match (q contained in key, or first word of key in q)
     if (!section) {
       const key = Object.keys(ITEM_TO_SECTION).find(k => k.includes(q) || q.includes(k));
       if (key) section = ITEM_TO_SECTION[key];
     }
-
     if (section) {
       const c = getSectionCenter(section);
-      setSearchDot({ section, cx: c.cx, cy: c.cy, label: searchQuery.trim() });
-      setHighlightSection(section);
-      setSearchError('');
-      setTooltip(null);
+      setSearchDot({ section, cx:c.cx, cy:c.cy, label:searchQuery.trim() });
+      setHighlightSection(section); setSearchError(''); setTooltip(null);
     } else {
-      setSearchDot(null);
-      setHighlightSection(null);
+      setSearchDot(null); setHighlightSection(null);
       setSearchError(`"${searchQuery.trim()}" not found. Try a different item.`);
     }
   }, [searchQuery]);
 
+
   const clearSearch = () => {
-    setSearchQuery('');
-    setSearchDot(null);
-    setSearchError('');
-    setHighlightSection(null);
+    setSearchQuery(''); setSearchDot(null); setSearchError(''); setHighlightSection(null);
   };
 
+
   const dotPos = searchDot ? normToPercent(searchDot.cx, searchDot.cy) : null;
+
 
   return (
     <div style={s.page}>
       <style>{`
-        @keyframes ttIn   { from{opacity:0;transform:scale(0.9) translateY(4px)} to{opacity:1;transform:scale(1) translateY(0)} }
-        @keyframes dotPop { 0%,100%{transform:translate(-50%,-50%) scale(1)} 50%{transform:translate(-50%,-50%) scale(1.45)} }
-        @keyframes ring   { 0%{transform:translate(-50%,-50%) scale(1);opacity:0.65} 100%{transform:translate(-50%,-50%) scale(3);opacity:0} }
+        @keyframes ttIn   { from{opacity:0;transform:scale(0.92) translateY(4px)} to{opacity:1;transform:scale(1) translateY(0)} }
+        @keyframes dotPop { 0%,100%{transform:translate(-50%,-50%) scale(1)} 50%{transform:translate(-50%,-50%) scale(1.5)} }
+        @keyframes ring   { 0%{transform:translate(-50%,-50%) scale(1);opacity:0.6} 100%{transform:translate(-50%,-50%) scale(3.2);opacity:0} }
+        .srect:hover { filter:brightness(0.91); }
       `}</style>
+
 
       {/* Header */}
       <div style={s.header}>
@@ -287,30 +330,26 @@ export default function StoreMap() {
           <h2 style={s.title}>Store Map</h2>
           <p style={s.subtitle}>Click any section to see what's stocked there, or search for a specific item.</p>
         </div>
-
         <div style={s.searchRow}>
           <div style={s.searchBox}>
-            {/* magnifier */}
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="2.5"
-              strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink:0 }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink:0 }}>
               <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
             </svg>
             <input
               style={s.searchInput}
-              placeholder="e.g. Fresh Tomatoes, Spaghetti, Milks…"
+              placeholder="e.g. Fresh Tomatoes, Spaghetti, Milk…"
               value={searchQuery}
               onChange={e => { setSearchQuery(e.target.value); setSearchError(''); }}
-              onKeyDown={e => e.key === 'Enter' && handleSearch()}
+              onKeyDown={e => e.key==='Enter' && handleSearch()}
             />
-            {searchQuery && (
-              <button onClick={clearSearch} style={s.clearBtn}>×</button>
-            )}
+            {searchQuery && <button onClick={clearSearch} style={s.clearBtn}>×</button>}
           </div>
           <button onClick={handleSearch} style={s.findBtn}>Find</button>
         </div>
       </div>
 
-      {/* Result / error banner */}
+
+      {/* Banners */}
       {searchDot && (
         <div style={s.resultBanner}>
           <span>📍</span>
@@ -326,148 +365,148 @@ export default function StoreMap() {
         </div>
       )}
 
+
       {/* Map */}
       <div style={s.mapOuter}>
-        {/* aspect-ratio box: 1920 × 878 */}
-        <div
-          ref={containerRef}
-          style={s.mapInner}
-          onClick={() => { setTooltip(null); }}
-        >
-          {/* SVG image */}
-          <img src={storeMapSvg} alt="Store Map" style={s.mapImg} draggable={false} />
+        <div ref={containerRef} style={s.mapInner} onClick={() => setTooltip(null)}>
 
-          {/* Invisible clickable rects */}
-          {Object.entries(SECTION_BOUNDS).map(([section, rects]) =>
-            rects.map((rect, i) => {
-              const hovered    = hoveredSection   === section;
-              const highlighted = highlightSection === section;
+
+          {/* White background */}
+          <div style={{ position:'absolute', inset:0, background:'#ffffff', borderRadius:'11px' }} />
+
+
+          {/* Colored section rects + labels */}
+          {Object.entries(SECTION_BOUNDS).map(([section, rects]) => {
+            const color       = getSectionColor(section);
+            const hovered     = hoveredSection   === section;
+            const highlighted = highlightSection === section;
+            const label       = shortLabel(section);
+
+
+            return rects.map((rect, i) => {
+              const pos     = normToPercentRect(rect.x_min, rect.y_min, rect.x_max, rect.y_max);
+              const rectW   = (rect.x_max - rect.x_min) * 100;
+              const rectH   = (rect.y_max - rect.y_min) * 100;
+              const narrow  = rectW < 3.5;
+              const short   = rectH < 6;
+              const showLabel = i === 0 && !narrow && !short;
+              const vertical  = rectW < 5 && rectH > 18;
+              const fontSize  = rectW < 5 ? '5px' : rectW < 7 ? '6px' : '7px';
+
+
               return (
                 <div
                   key={`${section}-${i}`}
-                  style={{
-                    position: 'absolute',
-                    ...normToPercentRect(rect.x_min, rect.y_min, rect.x_max, rect.y_max),
-                    cursor: 'pointer',
-                    boxSizing: 'border-box',
-                    background: highlighted
-                      ? 'rgba(60,179,113,0.20)'
-                      : hovered
-                        ? 'rgba(60,179,113,0.10)'
-                        : 'transparent',
-                    border: highlighted
-                      ? '2px solid rgba(60,179,113,0.65)'
-                      : hovered
-                        ? '1.5px solid rgba(60,179,113,0.38)'
-                        : '1.5px solid transparent',
-                    borderRadius: '2px',
-                    transition: 'background 0.13s, border-color 0.13s',
-                  }}
+                  className="srect"
                   onClick={e => handleRectClick(section, e)}
                   onMouseEnter={() => setHoveredSection(section)}
                   onMouseLeave={() => setHoveredSection(null)}
-                />
+                  style={{
+                    position:'absolute', ...pos, boxSizing:'border-box', cursor:'pointer',
+                    background: highlighted ? color.bg : hovered ? color.bg : `${color.bg}bb`,
+                    border: highlighted
+                      ? `2px solid ${color.border}`
+                      : hovered
+                        ? `1.5px solid ${color.border}`
+                        : `1px solid ${color.border}99`,
+                    borderRadius:'3px',
+                    transition:'background 0.15s, border-color 0.15s',
+                    display:'flex', alignItems:'center', justifyContent:'center',
+                    overflow:'hidden',
+                  }}
+                >
+                  {showLabel && (
+                    <span style={{
+                      fontSize, fontWeight:'700', color:color.text,
+                      textAlign:'center', lineHeight:1.15, letterSpacing:'0.15px',
+                      writingMode: vertical ? 'vertical-rl' : 'horizontal-tb',
+                      transform:   vertical ? 'rotate(180deg)' : 'none',
+                      userSelect:'none', pointerEvents:'none',
+                      whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
+                      maxWidth:'100%', padding:'1px 2px',
+                    }}>
+                      {label}
+                    </span>
+                  )}
+                </div>
               );
-            })
-          )}
+            });
+          })}
+
 
           {/* Search dot */}
-          {searchDot && dotPos && (
-            <>
-              <div style={{
-                position:'absolute', left:dotPos.left, top:dotPos.top,
-                width:'22px', height:'22px', borderRadius:'50%',
-                background:'rgba(60,179,113,0.3)', border:'2px solid #3CB371',
-                transform:'translate(-50%,-50%)',
-                animation:'ring 1.5s ease-out infinite',
-                pointerEvents:'none', zIndex:30,
-              }}/>
-              <div style={{
-                position:'absolute', left:dotPos.left, top:dotPos.top,
-                width:'13px', height:'13px', borderRadius:'50%',
-                background:'#3CB371', border:'2.5px solid white',
-                boxShadow:'0 2px 8px rgba(0,0,0,0.28)',
-                transform:'translate(-50%,-50%)',
-                animation:'dotPop 1.5s ease-in-out infinite',
-                pointerEvents:'none', zIndex:31,
-              }}/>
-            </>
-          )}
+          {searchDot && dotPos && (<>
+            <div style={{
+              position:'absolute', left:dotPos.left, top:dotPos.top,
+              width:'24px', height:'24px', borderRadius:'50%',
+              background:'rgba(60,179,113,0.25)', border:'2px solid #3CB371',
+              transform:'translate(-50%,-50%)',
+              animation:'ring 1.5s ease-out infinite',
+              pointerEvents:'none', zIndex:30,
+            }}/>
+            <div style={{
+              position:'absolute', left:dotPos.left, top:dotPos.top,
+              width:'14px', height:'14px', borderRadius:'50%',
+              background:'#3CB371', border:'2.5px solid white',
+              boxShadow:'0 2px 10px rgba(0,0,0,0.3)',
+              transform:'translate(-50%,-50%)',
+              animation:'dotPop 1.5s ease-in-out infinite',
+              pointerEvents:'none', zIndex:31,
+            }}/>
+          </>)}
+
 
           {/* Tooltip */}
           {tooltip && (
             <CategoryTooltip
-              section={tooltip.section}
-              clickX={tooltip.x}
-              clickY={tooltip.y}
-              containerRef={containerRef}
-              onClose={() => setTooltip(null)}
+              section={tooltip.section} clickX={tooltip.x} clickY={tooltip.y}
+              containerRef={containerRef} onClose={() => setTooltip(null)}
             />
           )}
         </div>
       </div>
 
+
       {/* Legend */}
-      <div style={s.legend}>
-        <span style={s.legendDot}/>
-        <span style={s.legendText}>Hover to highlight · Click to see items · Search to locate a product</span>
+      <div style={s.legendRow}>
+        {LEGEND.map(l => (
+          <div key={l.label} style={s.legendItem}>
+            <div style={{ width:'12px', height:'12px', borderRadius:'3px', flexShrink:0, background:l.bg, border:`1.5px solid ${l.border}` }}/>
+            <span style={s.legendText}>{l.label}</span>
+          </div>
+        ))}
       </div>
     </div>
   );
 }
 
+
 // Styles
 
-const s = {
-  page: { display:'flex', flexDirection:'column', width:'100%', height:'100%', gap:'10px' },
 
-  header: { display:'flex', justifyContent:'space-between', alignItems:'flex-start', flexWrap:'wrap', gap:'10px' },
-  title:  { fontSize:'26px', fontWeight:'700', color:'#1e1e1e88', marginBottom:'2px' },
+const s = {
+  page:     { display:'flex', flexDirection:'column', width:'100%', height:'100%', gap:'10px' },
+  header:   { display:'flex', justifyContent:'space-between', alignItems:'flex-start', flexWrap:'wrap', gap:'10px' },
+  title:    { fontSize:'26px', fontWeight:'700', color:'#3CB371', marginBottom:'2px' },
   subtitle: { fontSize:'13px', color:'#888' },
 
-  searchRow:  { display:'flex', gap:'8px', alignItems:'center' },
-  searchBox:  {
-    display:'flex', alignItems:'center', gap:'8px',
-    background:'white', border:'2px solid #e0e0e0', borderRadius:'22px',
-    padding:'7px 14px', width:'300px',
-    boxShadow:'0 1px 6px rgba(0,0,0,0.05)',
-  },
+
+  searchRow:   { display:'flex', gap:'8px', alignItems:'center' },
+  searchBox:   { display:'flex', alignItems:'center', gap:'8px', background:'white', border:'2px solid #e0e0e0', borderRadius:'22px', padding:'7px 14px', width:'300px', boxShadow:'0 1px 6px rgba(0,0,0,0.05)' },
   searchInput: { flex:1, border:'none', outline:'none', fontSize:'13px', color:'#1a1a1a', background:'transparent', minWidth:0 },
   clearBtn:    { background:'none', border:'none', cursor:'pointer', color:'#bbb', fontSize:'18px', lineHeight:1, padding:0, flexShrink:0 },
-  findBtn: {
-    background:'#3CB371', color:'white', border:'none', borderRadius:'22px',
-    padding:'8px 20px', fontSize:'13px', fontWeight:'700', cursor:'pointer', flexShrink:0,
-  },
+  findBtn:     { background:'#3CB371', color:'white', border:'none', borderRadius:'22px', padding:'8px 20px', fontSize:'13px', fontWeight:'700', cursor:'pointer', flexShrink:0 },
 
-  resultBanner: {
-    display:'flex', alignItems:'center', gap:'8px',
-    background:'#f0faf4', border:'1.5px solid #c8ecd4',
-    borderRadius:'8px', padding:'8px 14px',
-  },
-  bannerClear: { marginLeft:'auto', background:'none', border:'none', cursor:'pointer', color:'#999', fontSize:'13px', fontWeight:'600', padding:0 },
 
-  mapOuter: {
-    flex:1, minHeight:0,
-    border:'1px solid #e4e4e4',
-    borderRadius:'12px',
-    overflow:'auto',
-    boxShadow:'0 2px 12px rgba(0,0,0,0.06)',
-  },
-  mapInner: {
-    position:'relative',
-    width:'100%',
-    paddingBottom:`${(878/1920)*100}%`,  // 45.73% — preserves aspect ratio
-    overflow:'hidden',
-    cursor:'default',
-  },
-  mapImg: {
-    position:'absolute', top:0, left:0,
-    width:'100%', height:'100%',
-    objectFit:'fill',
-    userSelect:'none', display:'block',
-  },
+  resultBanner: { display:'flex', alignItems:'center', gap:'8px', background:'#f0faf4', border:'1.5px solid #c8ecd4', borderRadius:'8px', padding:'8px 14px' },
+  bannerClear:  { marginLeft:'auto', background:'none', border:'none', cursor:'pointer', color:'#999', fontSize:'13px', fontWeight:'600', padding:0 },
 
-  legend:    { display:'flex', alignItems:'center', gap:'7px', paddingBottom:'2px' },
-  legendDot: { width:'9px', height:'9px', borderRadius:'50%', background:'#3CB371', flexShrink:0 },
-  legendText:{ fontSize:'12px', color:'#bbb' },
+
+  mapOuter: { flex:1, minHeight:0, border:'1px solid #e4e4e4', borderRadius:'12px', overflow:'auto', boxShadow:'0 2px 16px rgba(0,0,0,0.07)', background:'#ffffff' },
+  mapInner: { position:'relative', width:'100%', paddingBottom:`${(878/1920)*100}%`, overflow:'hidden', cursor:'default' },
+
+
+  legendRow:  { display:'flex', flexWrap:'wrap', gap:'10px', paddingBottom:'4px' },
+  legendItem: { display:'flex', alignItems:'center', gap:'5px' },
+  legendText: { fontSize:'11px', color:'#666', fontWeight:'500' },
 };

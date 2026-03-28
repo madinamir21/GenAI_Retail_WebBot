@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback } from 'react';
 
-// ─── Category color palette ────────────────────────────────────────────────────
+// Category color palette
 const SECTION_COLORS = {
   "FRUITS":             { bg:'#d4edda', border:'#52a96e', text:'#1a5c35' },
   "VEGETABLES":         { bg:'#d4edda', border:'#52a96e', text:'#1a5c35' },
@@ -72,7 +72,7 @@ const SHORT_LABELS = {
 };
 const shortLabel = n => SHORT_LABELS[n] || n;
 
-// ─── Data ─────────────────────────────────────────────────────────────────────
+// Data 
 const Y_OFFSET = 0.115;
 
 const SECTION_BOUNDS = {
@@ -186,7 +186,7 @@ Object.entries(CLICK_CATEGORIES).forEach(([section, items]) => {
   items.forEach(item => { ITEM_TO_SECTION[item.toLowerCase()] = section; });
 });
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// Helpers
 
 function normToPercent(normX, normY) {
   return { left:`${normX * 100}%`, top:`${((normY - Y_OFFSET) / 1.0) * 100}%` };
@@ -209,7 +209,7 @@ function getSectionCenter(sectionName) {
   return { cx, cy };
 }
 
-// ─── Tooltip ──────────────────────────────────────────────────────────────────
+// Tooltip 
 
 function CategoryTooltip({ section, clickX, clickY, containerRef, onClose }) {
   const tooltipRef = useRef(null);
@@ -256,7 +256,7 @@ function CategoryTooltip({ section, clickX, clickY, containerRef, onClose }) {
   );
 }
 
-// ─── StoreMap ─────────────────────────────────────────────────────────────────
+// StoreMap 
 
 export default function StoreMap() {
   const containerRef = useRef(null);
@@ -454,7 +454,7 @@ export default function StoreMap() {
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
+// Styles
 
 const s = {
   page:     { display:'flex', flexDirection:'column', width:'100%', height:'100%', gap:'10px' },

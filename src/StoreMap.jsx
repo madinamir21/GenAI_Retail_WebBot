@@ -1,7 +1,6 @@
 import React, { useState, useRef, useCallback } from 'react';
 
-
-// Category color palette 
+// ─── Category color palette ────────────────────────────────────────────────────
 const SECTION_COLORS = {
   "FRUITS":             { bg:'#d4edda', border:'#52a96e', text:'#1a5c35' },
   "VEGETABLES":         { bg:'#d4edda', border:'#52a96e', text:'#1a5c35' },
@@ -41,10 +40,8 @@ const SECTION_COLORS = {
   "DELI":               { bg:'#f1f5f9', border:'#94a3b8', text:'#334155' },
 };
 
-
 const DEFAULT_COLOR = { bg:'#f0faf4', border:'#3CB371', text:'#1a5c35' };
 const getSectionColor = s => SECTION_COLORS[s] || DEFAULT_COLOR;
-
 
 const LEGEND = [
   { label:'Fresh & Produce', bg:'#d4edda', border:'#52a96e' },
@@ -56,23 +53,27 @@ const LEGEND = [
   { label:'Other',           bg:'#f1f5f9', border:'#94a3b8' },
 ];
 
-
 const SHORT_LABELS = {
-  'ALCOHOLIC BEVERAGES':'ALCOHOL',
-  'BREAKFAST CEREALS':  'CEREALS',
-  'VEGETABLE OILS':     'OILS',
-  'SALTY SNACKS':       'SNACKS',
-  'DRIED FRUITS':       'DR.FRUITS',
-  'FROZEN FOODS':       'FROZEN',
-  'CANNED FOOD':        'CANNED',
-  'BABY FOODS':         'BABY',
+  'ALCOHOLIC BEVERAGES': 'ALCOHOL',
+  'BREAKFAST CEREALS':   'CEREALS',
+  'VEGETABLE OILS':      'OILS',
+  'SALTY SNACKS':        'SNACKS',
+  'DRIED FRUITS':        'DR. FRUITS',
+  'FROZEN FOODS':        'FROZEN',
+  'CANNED FOOD':         'CANNED',
+  'BABY FOODS':          'BABY',
+  'CONDIMENTS':          'CONDI-MENTS',
+  'BAKING MIXES':        'BAKING',
+  'VEGETABLES':          'VEG.',
+  'VEGETABLE OILS':      'OILS',
+  'ICE CREAMS':          'ICE CRM',
+  'CHOCOLATE':           'CHOC.',
+  'BREAKFAST CEREALS':   'CEREALS',
 };
 const shortLabel = n => SHORT_LABELS[n] || n;
 
-
-// Data 
+// ─── Data ─────────────────────────────────────────────────────────────────────
 const Y_OFFSET = 0.115;
-
 
 const SECTION_BOUNDS = {
   "ALCOHOLIC BEVERAGES": [
@@ -141,7 +142,6 @@ const SECTION_BOUNDS = {
   "WATERS":            [{ x_min:0.3569, y_min:0.2446, x_max:0.3802, y_max:0.8653, center_x:0.3685, center_y:0.5549 }],
 };
 
-
 const CLICK_CATEGORIES = {
   "ALCOHOLIC BEVERAGES": ["Alcoholic Beverages","Beers","Ciders","Distilled Beverages","Hard Seltzers","Liqueurs","Perry","Premixed Alcoholic Beverages","Rum Based Cocktail","Sake","Whiskey Based Cocktail","Wine Based Drinks","Wines"],
   "BABY FOODS":          ["Baby Foods","Baby Milks","Cereals For Babies"],
@@ -181,20 +181,16 @@ const CLICK_CATEGORIES = {
   "WATERS":              ["Carbonated Waters","Drinking Water","Flavored Waters","Mineral Waters","Waters"],
 };
 
-
 const ITEM_TO_SECTION = {};
 Object.entries(CLICK_CATEGORIES).forEach(([section, items]) => {
   items.forEach(item => { ITEM_TO_SECTION[item.toLowerCase()] = section; });
 });
 
-
-// Helpers
-
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function normToPercent(normX, normY) {
   return { left:`${normX * 100}%`, top:`${((normY - Y_OFFSET) / 1.0) * 100}%` };
 }
-
 
 function normToPercentRect(x_min, y_min, x_max, y_max) {
   return {
@@ -205,7 +201,6 @@ function normToPercentRect(x_min, y_min, x_max, y_max) {
   };
 }
 
-
 function getSectionCenter(sectionName) {
   const rects = SECTION_BOUNDS[sectionName];
   if (!rects) return null;
@@ -214,16 +209,13 @@ function getSectionCenter(sectionName) {
   return { cx, cy };
 }
 
-
-// Tooltip 
-
+// ─── Tooltip ──────────────────────────────────────────────────────────────────
 
 function CategoryTooltip({ section, clickX, clickY, containerRef, onClose }) {
   const tooltipRef = useRef(null);
   const [pos, setPos] = useState(null);
   const items = CLICK_CATEGORIES[section] || [];
   const color = getSectionColor(section);
-
 
   const measuredRef = useCallback(node => {
     if (!node || !containerRef.current) return;
@@ -237,7 +229,6 @@ function CategoryTooltip({ section, clickX, clickY, containerRef, onClose }) {
     if (left < 4) left = 4;
     setPos({ left, top });
   }, [clickX, clickY, containerRef]);
-
 
   return (
     <div ref={measuredRef} style={{
@@ -265,9 +256,7 @@ function CategoryTooltip({ section, clickX, clickY, containerRef, onClose }) {
   );
 }
 
-
-// StoreMap
-
+// ─── StoreMap ─────────────────────────────────────────────────────────────────
 
 export default function StoreMap() {
   const containerRef = useRef(null);
@@ -278,14 +267,12 @@ export default function StoreMap() {
   const [highlightSection, setHighlightSection] = useState(null);
   const [searchError,      setSearchError]      = useState('');
 
-
   const handleRectClick = useCallback((section, e) => {
     e.stopPropagation();
     const rect = containerRef.current.getBoundingClientRect();
     setTooltip({ section, x: e.clientX - rect.left, y: e.clientY - rect.top });
     setHighlightSection(null); setSearchDot(null);
   }, []);
-
 
   const handleSearch = useCallback(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -305,14 +292,11 @@ export default function StoreMap() {
     }
   }, [searchQuery]);
 
-
   const clearSearch = () => {
     setSearchQuery(''); setSearchDot(null); setSearchError(''); setHighlightSection(null);
   };
 
-
   const dotPos = searchDot ? normToPercent(searchDot.cx, searchDot.cy) : null;
-
 
   return (
     <div style={s.page}>
@@ -322,7 +306,6 @@ export default function StoreMap() {
         @keyframes ring   { 0%{transform:translate(-50%,-50%) scale(1);opacity:0.6} 100%{transform:translate(-50%,-50%) scale(3.2);opacity:0} }
         .srect:hover { filter:brightness(0.91); }
       `}</style>
-
 
       {/* Header */}
       <div style={s.header}>
@@ -348,7 +331,6 @@ export default function StoreMap() {
         </div>
       </div>
 
-
       {/* Banners */}
       {searchDot && (
         <div style={s.resultBanner}>
@@ -365,15 +347,12 @@ export default function StoreMap() {
         </div>
       )}
 
-
       {/* Map */}
       <div style={s.mapOuter}>
         <div ref={containerRef} style={s.mapInner} onClick={() => setTooltip(null)}>
 
-
           {/* White background */}
           <div style={{ position:'absolute', inset:0, background:'#ffffff', borderRadius:'11px' }} />
-
 
           {/* Colored section rects + labels */}
           {Object.entries(SECTION_BOUNDS).map(([section, rects]) => {
@@ -382,17 +361,14 @@ export default function StoreMap() {
             const highlighted = highlightSection === section;
             const label       = shortLabel(section);
 
-
             return rects.map((rect, i) => {
               const pos     = normToPercentRect(rect.x_min, rect.y_min, rect.x_max, rect.y_max);
               const rectW   = (rect.x_max - rect.x_min) * 100;
               const rectH   = (rect.y_max - rect.y_min) * 100;
-              const narrow  = rectW < 3.5;
-              const short   = rectH < 6;
-              const showLabel = i === 0 && !narrow && !short;
-              const vertical  = rectW < 5 && rectH > 18;
-              const fontSize  = rectW < 5 ? '5px' : rectW < 7 ? '6px' : '7px';
-
+              const short   = rectH < 4;   // only skip truly tiny rects
+              const showLabel = i === 0 && !short;
+              const vertical  = rectW < 8 && rectH > 10; // tall narrow = rotate
+              const fontSize  = rectW < 3 ? '7px' : rectW < 6 ? '8px' : rectH < 8 ? '8px' : '9px';
 
               return (
                 <div
@@ -410,6 +386,7 @@ export default function StoreMap() {
                         ? `1.5px solid ${color.border}`
                         : `1px solid ${color.border}99`,
                     borderRadius:'3px',
+                    boxShadow: highlighted ? `0 3px 0 ${color.border}66, 0 2px 6px rgba(0,0,0,0.12)` : hovered ? `0 3px 0 ${color.border}44, 0 2px 4px rgba(0,0,0,0.08)` : '0 2px 0 rgba(0,0,0,0.08)',
                     transition:'background 0.15s, border-color 0.15s',
                     display:'flex', alignItems:'center', justifyContent:'center',
                     overflow:'hidden',
@@ -433,7 +410,6 @@ export default function StoreMap() {
             });
           })}
 
-
           {/* Search dot */}
           {searchDot && dotPos && (<>
             <div style={{
@@ -455,7 +431,6 @@ export default function StoreMap() {
             }}/>
           </>)}
 
-
           {/* Tooltip */}
           {tooltip && (
             <CategoryTooltip
@@ -465,7 +440,6 @@ export default function StoreMap() {
           )}
         </div>
       </div>
-
 
       {/* Legend */}
       <div style={s.legendRow}>
@@ -480,16 +454,13 @@ export default function StoreMap() {
   );
 }
 
-
-// Styles
-
+// ─── Styles ───────────────────────────────────────────────────────────────────
 
 const s = {
   page:     { display:'flex', flexDirection:'column', width:'100%', height:'100%', gap:'10px' },
   header:   { display:'flex', justifyContent:'space-between', alignItems:'flex-start', flexWrap:'wrap', gap:'10px' },
-  title:    { fontSize:'26px', fontWeight:'700', color:'#3CB371', marginBottom:'2px' },
+  title:    { fontSize:'26px', fontWeight:'700', color:'#1a5c35', marginBottom:'2px' },
   subtitle: { fontSize:'13px', color:'#888' },
-
 
   searchRow:   { display:'flex', gap:'8px', alignItems:'center' },
   searchBox:   { display:'flex', alignItems:'center', gap:'8px', background:'white', border:'2px solid #e0e0e0', borderRadius:'22px', padding:'7px 14px', width:'300px', boxShadow:'0 1px 6px rgba(0,0,0,0.05)' },
@@ -497,14 +468,11 @@ const s = {
   clearBtn:    { background:'none', border:'none', cursor:'pointer', color:'#bbb', fontSize:'18px', lineHeight:1, padding:0, flexShrink:0 },
   findBtn:     { background:'#3CB371', color:'white', border:'none', borderRadius:'22px', padding:'8px 20px', fontSize:'13px', fontWeight:'700', cursor:'pointer', flexShrink:0 },
 
-
   resultBanner: { display:'flex', alignItems:'center', gap:'8px', background:'#f0faf4', border:'1.5px solid #c8ecd4', borderRadius:'8px', padding:'8px 14px' },
   bannerClear:  { marginLeft:'auto', background:'none', border:'none', cursor:'pointer', color:'#999', fontSize:'13px', fontWeight:'600', padding:0 },
 
-
   mapOuter: { flex:1, minHeight:0, border:'1px solid #e4e4e4', borderRadius:'12px', overflow:'auto', boxShadow:'0 2px 16px rgba(0,0,0,0.07)', background:'#ffffff' },
   mapInner: { position:'relative', width:'100%', paddingBottom:`${(878/1920)*100}%`, overflow:'hidden', cursor:'default' },
-
 
   legendRow:  { display:'flex', flexWrap:'wrap', gap:'10px', paddingBottom:'4px' },
   legendItem: { display:'flex', alignItems:'center', gap:'5px' },

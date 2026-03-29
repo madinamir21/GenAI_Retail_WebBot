@@ -38,6 +38,7 @@ const SECTION_COLORS = {
   "VEGETABLE OILS":     { bg:'#fee2e2', border:'#dc2626', text:'#5c0000' },
   "BABY FOODS":         { bg:'#f1f5f9', border:'#94a3b8', text:'#334155' },
   "DELI":               { bg:'#f1f5f9', border:'#94a3b8', text:'#334155' },
+  "CHECKOUT":          { bg:'#7ea990', border:'#0f3d22', text:'#ffffff' },
 };
 
 const DEFAULT_COLOR = { bg:'#f0faf4', border:'#3CB371', text:'#1a5c35' };
@@ -51,9 +52,11 @@ const LEGEND = [
   { label:'Drinks',          bg:'#ede9fe', border:'#7c3aed' },
   { label:'Pantry',          bg:'#fee2e2', border:'#dc2626' },
   { label:'Other',           bg:'#f1f5f9', border:'#94a3b8' },
+  { label:'Checkout / Entrance', bg:'#cffafe', border:'#0891b2' },
 ];
 
 const SHORT_LABELS = {
+  'CHECKOUT': 'CHECKOUT / ENTRANCE / EXIT',
   'ALCOHOLIC BEVERAGES': 'ALCOHOL',
   'BREAKFAST CEREALS':   'CEREALS',
   'VEGETABLE OILS':      'OILS',
@@ -62,7 +65,7 @@ const SHORT_LABELS = {
   'FROZEN FOODS':        'FROZEN',
   'CANNED FOOD':         'CANNED',
   'BABY FOODS':          'BABY',
-  'CONDIMENTS':          'CONDI-MENTS',
+  'CONDIMENTS':          'CONDIMENTS',
   'BAKING MIXES':        'BAKING',
   'VEGETABLES':          'VEG.',
   'VEGETABLE OILS':      'OILS',
@@ -140,6 +143,7 @@ const SECTION_BOUNDS = {
     { x_min:0.7661, y_min:0.7205, x_max:0.9475, y_max:0.7714, center_x:0.8568, center_y:0.7460 },
   ],
   "WATERS":            [{ x_min:0.3569, y_min:0.2446, x_max:0.3802, y_max:0.8653, center_x:0.3685, center_y:0.5549 }],
+  "CHECKOUT":          [{ x_min:0.35, y_min:1.075, x_max:0.65, y_max:1.115, center_x:0.5, center_y:1.095 }],
 };
 
 const CLICK_CATEGORIES = {
@@ -179,6 +183,7 @@ const CLICK_CATEGORIES = {
   "VEGETABLE OILS":      ["Cereal Oils","Mixed Vegetable Oils","Nut Oils","Olive Oils","Rapeseed Oils","Sunflower Oils","Vegetable Oil Sprays","Vegetable Oils"],
   "VEGETABLES":          ["Fresh Asparagus","Fresh Belgian Endives","Fresh Broccoli","Fresh Brussels Sprouts","Fresh Carrots","Fresh Cucumbers","Fresh Fennel Bulbs","Fresh Garlic","Fresh Green Beans","Fresh Mixed Vegetables","Fresh Mushrooms","Fresh Onions","Fresh Shallots","Fresh Spinachs","Fresh Sweet Peppers","Fresh Sweet Potatoes","Fresh Tomatoes","Fresh Vegetables","Fresh Zucchini"],
   "WATERS":              ["Carbonated Waters","Drinking Water","Flavored Waters","Mineral Waters","Waters"],
+  "CHECKOUT":          ["Checkout", "Entrance", "Exit"],
 };
 
 const ITEM_TO_SECTION = {};
@@ -186,7 +191,7 @@ Object.entries(CLICK_CATEGORIES).forEach(([section, items]) => {
   items.forEach(item => { ITEM_TO_SECTION[item.toLowerCase()] = section; });
 });
 
-// Helpers
+// Helpers 
 
 function normToPercent(normX, normY) {
   return { left:`${normX * 100}%`, top:`${((normY - Y_OFFSET) / 1.0) * 100}%` };
@@ -209,7 +214,7 @@ function getSectionCenter(sectionName) {
   return { cx, cy };
 }
 
-// Tooltip 
+// ─── Tooltip ──────────────────────────────────────────────────────────────────
 
 function CategoryTooltip({ section, clickX, clickY, containerRef, onClose }) {
   const tooltipRef = useRef(null);
@@ -256,7 +261,7 @@ function CategoryTooltip({ section, clickX, clickY, containerRef, onClose }) {
   );
 }
 
-// StoreMap 
+// StoreMap
 
 export default function StoreMap() {
   const containerRef = useRef(null);
@@ -454,7 +459,7 @@ export default function StoreMap() {
   );
 }
 
-// Styles
+// Styles 
 
 const s = {
   page:     { display:'flex', flexDirection:'column', width:'100%', height:'100%', gap:'10px' },

@@ -1138,6 +1138,9 @@ export default function App() {
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [recording, setRecording] = useState(false);
+  const [audioBlob, setAudioBlob] = useState(null);
+  const mediaRecorderRef = useRef(null);
   const [view, setView] = useState('chat');
   const [showUpload, setShowUpload] = useState(false);
   const [activeNav, setActiveNav] = useState(null);
@@ -1208,6 +1211,83 @@ export default function App() {
 
   const handleKey = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } };
 
+  const toggleRecording = async () => {
+    if (!recording) {
+ 
+      // Get audio stream
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  
+      // Determine supported mimeType
+      let mimeType;
+      if (MediaRecorder.isTypeSupported("audio/mp4")) {
+        mimeType = "audio/mp4";
+      } else if (MediaRecorder.isTypeSupported("audio/webm")) {
+        mimeType = "audio/webm";
+      } else {
+        mimeType = ""; 
+        console.warn("Neither MP4 nor WebM is supported. Using default format.");
+      }
+  
+      // Create MediaRecorder with the chosen MIME type
+      mediaRecorderRef.current = new MediaRecorder(stream, mimeType ? { mimeType } : {});
+      const chunks = [];
+      mediaRecorderRef.current.ondataavailable = (e) => chunks.push(e.data);
+      mediaRecorderRef.current.onstop = async () => {
+  
+        const blob = new Blob(chunks, { type: mediaRecorderRef.current.mimeType });
+        setAudioBlob(blob);
+  
+        // Transcribe audio
+        const textMessage = await transcribeAudio(blob);
+        setInputValue(textMessage);
+  
+        setRecording(false);
+      };
+  
+      mediaRecorderRef.current.start();
+      setRecording(true);
+    } else {
+      mediaRecorderRef.current?.stop();
+      setRecording(false);
+    }
+  };
+
+  const transcribeAudio = async (blob) => {
+    try {
+      // Convert to base64
+      const reader = new FileReader();
+      const base64Audio = await new Promise((resolve, reject) => {
+        reader.onloadend = () => resolve(reader.result.split(',')[1]); // remove data:<type>;base64,
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+
+      const mimeType = blob.type.split(';')[0];
+  
+      // Send to Lambda with the correct mimeType
+      const response = await fetch(
+        "https://v9m2i36p8e.execute-api.us-east-1.amazonaws.com/transcribe", 
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            audio: base64Audio,
+            mimeType: mimeType,
+          }),
+        }
+      );
+  
+      const data = await response.json();
+      return data.text;
+  
+    } catch (err) {
+      console.error("Transcription error:", err);
+      return "";
+    }
+  };
+
   const handleNavClick = (key) => {
     if (key === 'upload') { setShowUpload(true); return; }
     if (key === 'chat') { setView('chat'); setActiveNav('chat'); return; }
@@ -1244,6 +1324,24 @@ export default function App() {
             <h2 style={appStyle.welcomeTitle}>What are we craving today?</h2>
             <div style={appStyle.inputContainer}>
               <input type="text" placeholder="Let's stock up..." value={inputValue} onChange={e => setInputValue(e.target.value)} onKeyPress={handleKey} style={appStyle.chatInput} />
+              {/* Red toggle mic button */}
+              <div style={{ position: 'relative', display: 'inline-block', marginRight: '8px' }}>
+                {recording && ( <span style={{ position: 'absolute', top: '-10px', left: '-10px', width: '70px', height: '70px', borderRadius: '50%', background: 'rgba(255,0,0,0.3)',
+                  animation: 'pulse 1s infinite', }} />)}
+                <button onClick={toggleRecording} style={{ width: '50px', height: '50px', borderRadius: '50%', border: 'none', backgroundColor: recording ? '#FF4444' : '#D32F2F', cursor: 'pointer',
+                  transform: recording ? 'translateY(-4px) rotate(5deg)' : 'none', transition: 'all 0.2s ease', boxShadow: recording ? '0 4px 15px rgba(255,0,0,0.6)' : '0 2px 5px rgba(0,0,0,0.2)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', }} >
+                  <img src={ recording ? 'https://www.clker.com/cliparts/l/i/L/g/d/e/talk-radio-microphone-md.png' : 'https://cdn.creazilla.com/icons/3204588/mic-off-icon-lg.png' } alt="mic"
+                    style={{ width: '30px', height: '30px', pointerEvents: 'none', filter: 'invert(1)', }} />
+                </button>
+                <style>{`
+                  @keyframes pulse {
+                    0% { transform: scale(1); opacity: 0.7; }
+                    50% { transform: scale(1.2); opacity: 0.3; }
+                    100% { transform: scale(1); opacity: 0.7; }
+                  }
+                `}</style>
+              </div>
               <button className="send-btn" style={appStyle.sendBtn} onClick={handleSendMessage} disabled={!inputValue.trim()}><Icons.MessageSquare /></button>
             </div>
           </div>
@@ -1284,7 +1382,25 @@ export default function App() {
             <div style={{ paddingTop: '14px', paddingBottom: '6px' }}>
               <div style={appStyle.inputContainer}>
                 <input type="text" placeholder="Ask away..." value={inputValue} onChange={e => setInputValue(e.target.value)} onKeyPress={handleKey} style={appStyle.chatInput} />
-                <button className="send-btn" style={appStyle.sendBtn} onClick={handleSendMessage} disabled={!inputValue.trim() || isLoading}><Icons.MessageSquare /></button>
+                {/* Red toggle mic button */}
+                <div style={{ position: 'relative', display: 'inline-block', marginRight: '8px' }}>
+                  {recording && ( <span style={{ position: 'absolute', top: '-10px', left: '-10px', width: '70px', height: '70px', borderRadius: '50%', background: 'rgba(255,0,0,0.3)',
+                    animation: 'pulse 1s infinite', }} /> )}
+                  <button onClick={toggleRecording} style={{ width: '50px', height: '50px', borderRadius: '50%', border: 'none', backgroundColor: recording ? '#FF4444' : '#D32F2F', cursor: 'pointer',
+                    transform: recording ? 'translateY(-4px) rotate(5deg)' : 'none', transition: 'all 0.2s ease', boxShadow: recording ? '0 4px 15px rgba(255,0,0,0.6)' : '0 2px 5px rgba(0,0,0,0.2)', 
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', }} >
+                    <img src={ recording ? 'https://www.clker.com/cliparts/l/i/L/g/d/e/talk-radio-microphone-md.png' : 'https://cdn.creazilla.com/icons/3204588/mic-off-icon-lg.png' } alt="mic"
+                      style={{ width: '30px', height: '30px', pointerEvents: 'none', filter: 'invert(1)', }} />
+                  </button>
+                  <style>{`
+                    @keyframes pulse {
+                    0% { transform: scale(1); opacity: 0.7; }
+                    50% { transform: scale(1.2); opacity: 0.3; }
+                    100% { transform: scale(1); opacity: 0.7; }
+                    }
+                  `}</style>
+                </div>
+                { <button className="send-btn" style={appStyle.sendBtn} onClick={handleSendMessage} disabled={!inputValue.trim() || isLoading}><Icons.MessageSquare /></button> }
               </div>
             </div>
             {expandedImage && (

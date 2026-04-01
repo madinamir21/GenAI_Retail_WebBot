@@ -68,10 +68,10 @@ const SHORT_LABELS = {
   'CONDIMENTS':          'CONDIMENTS',
   'BAKING MIXES':        'BAKING',
   'VEGETABLES':          'VEG.',
-  'VEGETABLE OILS':      'OILS',
+  // 'VEGETABLE OILS':      'OILS',
   'ICE CREAMS':          'ICE CRM',
   'CHOCOLATE':           'CHOC.',
-  'BREAKFAST CEREALS':   'CEREALS',
+  // 'BREAKFAST CEREALS':   'CEREALS',
 };
 const shortLabel = n => SHORT_LABELS[n] || n;
 

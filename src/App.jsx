@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import StoreMap from './StoreMap.jsx'
 import AuthScreen from './AuthScreen.jsx'
 import { useUserData } from './hooks/useUserData.js'
+import { franc } from "franc";
 
 // SVG Icons
 const Icons = {
@@ -1153,6 +1154,7 @@ export default function App() {
   const [showFade, setShowFade] = useState(false);
   const [expandedImage, setExpandedImage] = useState(null);
   const messagesEndRef = useRef(null);
+  const [sessionId, setSessionId] = useState(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -1160,12 +1162,20 @@ export default function App() {
 
   const navigate = (v) => { setView(v); setActiveNav(v); };
 
-  // Get set session id equal to user id
-  const sessionId = authUser?.userId;
+  // Determine locale based on language
+  const determineLocale = (text) => {
+    if (/[\u4E00-\u9FFF]/.test(text)) return "zh_CN";
+
+    const lang = franc(text);
+    if (lang === "cmn") return "zh_CN";
+    if (lang === "spa") return "es_US";
+
+    return "en_US";
+  };
 
   // AWS Bedrock integration
-  const sendMessage = async (msg) => {
-    console.log("Sending message:", msg);
+  const sendMessage = async (msg, sessionId, localeId) => {
+    console.log("Sending message:", msg, "Locale:", localeId, "Session:", sessionId);
 
     try {
       const response = await fetch(
@@ -1176,6 +1186,7 @@ export default function App() {
           body: JSON.stringify({ 
             message: msg,
             sessionId: sessionId, 
+            localeId: localeId,
           }),
         }
       );
@@ -1190,12 +1201,18 @@ export default function App() {
 
   const handleSendMessage = async () => {
     if (!inputValue.trim()) return;
+
+    const localeId = determineLocale(inputValue);
+    const newSessionId = `${authUser?.userId}-${localeId}`;
+
+    setSessionId(newSessionId);
+
     const userMsg = { id: Date.now(), type: 'user', text: inputValue };
     setMessages(prev => [...prev, userMsg]);
     setInputValue('');
     setIsLoading(true);
     try {
-      const res = await sendMessage(inputValue);
+      const res = await sendMessage(inputValue, newSessionId, localeId);
 
       // Each Lex message has its own bubble
       const assistantMessages = res.messages.map((msg, idx) => ({
@@ -1309,7 +1326,7 @@ export default function App() {
     if (view === 'profile') return <ProfilePage onBack={() => setView('chat')} profile={profile} preferences={preferences} addresses={addresses} paymentMethods={paymentMethods} onSaveProfile={saveProfile} onSavePreferences={savePreferences} onAddAddress={addAddress} onRemoveAddress={removeAddress} onAddPaymentMethod={addPaymentMethod} onRemovePaymentMethod={removePaymentMethod} />;
     if (view === 'orderHistory') return <OrderHistory orders={orders} />;
     if (view === 'map') return <StoreMap />;
-    if (view === 'cart') return <Cart sessionId={sessionId} onCheckout={() => setView('shipping')} onBack={goBack} />;
+    if (view === 'cart') return <Cart sessionId={authUser?.userId} onCheckout={() => setView('shipping')} onBack={goBack} />;
     if (view === 'shipping') return <AddressForm title="Enter Shipping Address" data={shipping} onChange={setShipping} onContinue={() => setView('billing')} onBack={goBack} />;
     if (view === 'billing') return <AddressForm title="Enter Billing Address" data={billing} onChange={setBilling} onContinue={() => setView('payment')} onBack={goBack} extraAction={{ label: 'Same as Shipping', fn: () => { setBilling({ ...shipping }); setView('payment'); } }} />;
     if (view === 'payment') return <PaymentForm data={payment} onChange={setPayment} onReview={() => setView('review')} onBack={goBack} />;
@@ -1464,7 +1481,7 @@ export default function App() {
                   <div style={userMenuStyle.greeting}>Hello, {profile?.displayName || authUser?.displayName || authUser?.email?.split('@')[0] || 'User'}</div>
                   <button style={userMenuStyle.switchBtn} onClick={() => setShowUserMenu(false)}>Switch Profile</button>
                 </div>
-                <button style={userMenuStyle.signOut} onClick={() => { localStorage.removeItem('authUser'); localStorage.removeItem('sessionId'); setAuthUser(null); setMessages([]); setShowUserMenu(false); }}>Sign Out</button>
+                <button style={userMenuStyle.signOut} onClick={() => { localStorage.removeItem('authUser'); setSessionId(null); setAuthUser(null); setMessages([]); setShowUserMenu(false); }}>Sign Out</button>
               </div>
               <button
                 style={userMenuStyle.viewProfile}

@@ -12,6 +12,7 @@
   "dependencies": {
     "@aws-sdk/client-lex-runtime-v2": "^3.993.0",
     "aws-amplify": "^6.16.0",
+    "franc": "^6.2.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },

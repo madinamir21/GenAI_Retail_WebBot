@@ -271,6 +271,9 @@ export default function StoreMap() {
   const [searchDot,        setSearchDot]        = useState(null);
   const [highlightSection, setHighlightSection] = useState(null);
   const [searchError,      setSearchError]      = useState('');
+  const [activeRoute,      setActiveRoute]      = useState(null);
+  const [isSearching,      setIsSearching]      = useState(false);
+  const [hoveredStop, setHoveredStop] = useState(null);
 
   const handleRectClick = useCallback((section, e) => {
     e.stopPropagation();
@@ -279,26 +282,39 @@ export default function StoreMap() {
     setHighlightSection(null); setSearchDot(null);
   }, []);
 
-  const handleSearch = useCallback(() => {
-    const q = searchQuery.trim().toLowerCase();
-    if (!q) { setSearchDot(null); setSearchError(''); setHighlightSection(null); return; }
-    let section = ITEM_TO_SECTION[q];
-    if (!section) {
-      const key = Object.keys(ITEM_TO_SECTION).find(k => k.includes(q) || q.includes(k));
-      if (key) section = ITEM_TO_SECTION[key];
-    }
-    if (section) {
-      const c = getSectionCenter(section);
-      setSearchDot({ section, cx:c.cx, cy:c.cy, label:searchQuery.trim() });
-      setHighlightSection(section); setSearchError(''); setTooltip(null);
-    } else {
-      setSearchDot(null); setHighlightSection(null);
-      setSearchError(`"${searchQuery.trim()}" not found. Try a different item.`);
+  const handleSearch = useCallback(async () => {
+    const q = searchQuery.trim();
+    if (!q) { setActiveRoute(null); setSearchError(''); return; }
+
+    setIsSearching(true);
+    setSearchError('');
+    setActiveRoute(null);
+
+    try {
+      const res = await fetch(
+        "https://bsqk8gu8cc.execute-api.us-east-1.amazonaws.com/locate",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ items: q }),
+        }
+      );
+      const data = await res.json();
+      if (data.mapRoute) {
+        setActiveRoute(data.mapRoute);
+      } else {
+        setSearchError(`"${q}" not found. Try a different item.`);
+      }
+    } catch (err) {
+      setSearchError("Something went wrong. Please try again.");
+    } finally {
+      setIsSearching(false);
     }
   }, [searchQuery]);
 
   const clearSearch = () => {
-    setSearchQuery(''); setSearchDot(null); setSearchError(''); setHighlightSection(null);
+    setSearchQuery(''); setActiveRoute(null); setSearchError('');
+    setSearchDot(null); setHighlightSection(null);
   };
 
   const dotPos = searchDot ? normToPercent(searchDot.cx, searchDot.cy) : null;
@@ -332,7 +348,9 @@ export default function StoreMap() {
             />
             {searchQuery && <button onClick={clearSearch} style={s.clearBtn}>×</button>}
           </div>
-          <button onClick={handleSearch} style={s.findBtn}>Find</button>
+          <button onClick={handleSearch} style={{...s.findBtn, opacity: isSearching ? 0.7 : 1}} disabled={isSearching}>
+            {isSearching ? 'Searching...' : 'Find'}
+          </button>
         </div>
       </div>
 
@@ -349,6 +367,15 @@ export default function StoreMap() {
       {searchError && (
         <div style={{ ...s.resultBanner, background:'#fff5f5', borderColor:'#ffc2c2' }}>
           <span style={{ fontSize:'13px', color:'#c62828' }}>{searchError}</span>
+        </div>
+      )}
+      {activeRoute && (
+        <div style={s.resultBanner}>
+          <span>🗺️</span>
+          <span style={{ fontSize:'13px', color:'#1a1a1a' }}>
+            Route to <strong style={{ color:'#3CB371' }}>{activeRoute.stops?.map(s => s.item).join(', ')}</strong>
+          </span>
+          <button onClick={clearSearch} style={s.bannerClear}>Clear</button>
         </div>
       )}
 
@@ -435,6 +462,104 @@ export default function StoreMap() {
               pointerEvents:'none', zIndex:31,
             }}/>
           </>)}
+
+          {/* Route overlay */}
+          {activeRoute && (() => {
+            const W = containerRef.current?.offsetWidth || 1000;
+            const H = containerRef.current?.offsetHeight || 460;
+            const toX = nx => nx * W;
+            const toY = ny => ((ny - Y_OFFSET) / 1.0) * H;
+            const points = activeRoute.path?.map(p => `${toX(p.x)},${toY(p.y)}`).join(' ');
+            return (
+              <>
+                {/* Polyline */}
+                <svg style={{ position:'absolute', inset:0, width:'100%', height:'100%', pointerEvents:'none', zIndex:25 }}>
+                  {points && (
+                    <polyline points={points} fill="none" stroke="#e53e3e"
+                      strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" strokeDasharray="6 3"/>
+                  )}
+                </svg>
+
+                {/* Entrance dot */}
+                {activeRoute.entrance && (() => {
+                  const ep = normToPercent(activeRoute.entrance.x, activeRoute.entrance.y);
+                  return (
+                    <div style={{
+                      position:'absolute', left:ep.left, top:ep.top,
+                      width:'16px', height:'16px', borderRadius:'50%',
+                      background:'#3CB371', border:'2.5px solid white',
+                      boxShadow:'0 2px 6px rgba(0,0,0,0.3)',
+                      transform:'translate(-50%,-50%)',
+                      pointerEvents:'none', zIndex:32,
+                      display:'flex', alignItems:'center', justifyContent:'center',
+                    }}>
+                      <span style={{ fontSize:'7px', color:'white', fontWeight:'800' }}>▶</span>
+                    </div>
+                  );
+                })()}
+
+                {/* Numbered stop pins */}
+                {activeRoute.stops?.map(stop => {
+                  const sp = normToPercent(stop.x, stop.y);
+                  return (
+                    <React.Fragment key={stop.index}>
+                      <div style={{
+                        position:'absolute', left:sp.left, top:sp.top,
+                        width:'26px', height:'26px', borderRadius:'50%',
+                        background:'rgba(59,130,246,0.2)', border:'2px solid #3b82f6',
+                        transform:'translate(-50%,-50%)',
+                        animation:'ring 1.5s ease-out infinite',
+                        pointerEvents:'none', zIndex:33,
+                      }}/>
+                      <div style={{
+                        position:'absolute', left:sp.left, top:sp.top,
+                        width:'20px', height:'20px', borderRadius:'50%',
+                        background:'#3b82f6', border:'2.5px solid white',
+                        boxShadow:'0 2px 8px rgba(0,0,0,0.3)',
+                        transform:'translate(-50%,-50%)',
+                        pointerEvents:'none', zIndex:34,
+                        display:'flex', alignItems:'center', justifyContent:'center',
+                      }}>
+                        <span style={{ fontSize:'10px', color:'white', fontWeight:'800', lineHeight:1 }}>{stop.index}</span>
+                      </div>
+                      <div
+                        onMouseEnter={() => setHoveredStop(stop.index)}
+                        onMouseLeave={() => setHoveredStop(null)}
+                        style={{
+                          position:'absolute',
+                          left:`calc(${sp.left} + 14px)`,
+                          top:`calc(${sp.top} - 18px)`,
+                          background:'white', border:'1px solid #3b82f6',
+                          borderRadius:'4px', padding:'2px 6px',
+                          fontSize:'9px', fontWeight:'700', color:'#1e3a5f',
+                          whiteSpace:'nowrap', pointerEvents:'auto', zIndex:35,
+                          boxShadow:'0 1px 4px rgba(0,0,0,0.15)', cursor:'pointer',
+                        }}
+                      >
+                        {stop.item}
+                          {hoveredStop === stop.index && stop.image_url && (
+                            <div style={{
+                              position:'absolute', bottom:'24px', left:'0',
+                              background:'white', border:'2px solid #3b82f6',
+                              borderRadius:'8px', padding:'6px',
+                              boxShadow:'0 4px 16px rgba(0,0,0,0.2)',
+                              zIndex:50, pointerEvents:'none',
+                            }}>
+                              <img src={stop.image_url} alt={stop.item}
+                                style={{ width:'120px', height:'120px', objectFit:'contain', borderRadius:'4px', display:'block' }}
+                              />
+                              <div style={{ fontSize:'9px', color:'#1e3a5f', fontWeight:'700', marginTop:'4px', textAlign:'center', maxWidth:'120px' }}>
+                                {stop.item}
+                              </div>
+                            </div>
+                          )}
+                      </div>
+                    </React.Fragment>
+                  );
+                })}
+              </>
+            );
+          })()}
 
           {/* Tooltip */}
           {tooltip && (

@@ -1155,6 +1155,8 @@ export default function App() {
   const [expandedImage, setExpandedImage] = useState(null);
   const messagesEndRef = useRef(null);
   const [sessionId, setSessionId] = useState(null);
+  //language detect
+  const [selectedLocale, setSelectedLocale] = useState("en_US");
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -1166,12 +1168,37 @@ export default function App() {
   const determineLocale = (text) => {
     if (/[\u4E00-\u9FFF]/.test(text)) return "zh_CN";
 
-    const lang = franc(text);
+    /* const lang = franc(text);
     if (lang === "cmn") return "zh_CN";
     if (lang === "spa") return "es_US";
 
-    return "en_US";
+    return "en_US"; */
+    return selectedLocale;   
   };
+
+  //Toggle component for language selection
+  const LanguageToggle = () => (
+    <div style={{ display: "flex", gap: "6px", padding: "8px 0 10px 0", justifyContent: "center" }}>
+      {[
+        { locale: "en_US", flag: "🇺🇸", label: "EN" },
+        { locale: "es_US", flag: "🇪🇸", label: "ES" },
+        { locale: "zh_CN", flag: "🇨🇳", label: "中文" },
+      ].map(({ locale, flag, label }) => (
+        <button key={locale} onClick={() => setSelectedLocale(locale)} style={{
+          display: "flex", alignItems: "center", gap: "5px",
+          padding: "5px 12px", borderRadius: "20px",
+          border: `2px solid ${selectedLocale === locale ? "#3CB371" : "#e0e0e0"}`,
+          backgroundColor: selectedLocale === locale ? "#3CB371" : "white",
+          color: selectedLocale === locale ? "white" : "#555",
+          cursor: "pointer", fontSize: "13px",
+          fontWeight: selectedLocale === locale ? "700" : "400",
+          transition: "all 0.2s",
+        }}>
+          <span>{flag}</span><span>{label}</span>
+        </button>
+      ))}
+    </div>
+);
 
   // AWS Bedrock integration
   const sendMessage = async (msg, sessionId, localeId) => {
@@ -1361,6 +1388,7 @@ export default function App() {
               </div>
               <button className="send-btn" style={appStyle.sendBtn} onClick={handleSendMessage} disabled={!inputValue.trim()}><Icons.MessageSquare /></button>
             </div>
+            <LanguageToggle />
           </div>
         ) : (
           <div style={appStyle.conversationContainer}>
@@ -1419,6 +1447,7 @@ export default function App() {
                 </div>
                 { <button className="send-btn" style={appStyle.sendBtn} onClick={handleSendMessage} disabled={!inputValue.trim() || isLoading}><Icons.MessageSquare /></button> }
               </div>
+              <LanguageToggle />
             </div>
             {expandedImage && (
               <div onClick={() => setExpandedImage(null)} style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0,0,0,0.8)',

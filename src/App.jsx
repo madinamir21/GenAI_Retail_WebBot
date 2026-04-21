@@ -1307,6 +1307,7 @@ export default function App() {
       });
 
       const mimeType = blob.type.split(';')[0];
+      const reformatLocale = (locale) => locale.replace("_", "-");
   
       // Send to Lambda with the correct mimeType
       const response = await fetch(
@@ -1319,6 +1320,7 @@ export default function App() {
           body: JSON.stringify({
             audio: base64Audio,
             mimeType: mimeType,
+            language: reformatLocale(selectedLocale),
           }),
         }
       );

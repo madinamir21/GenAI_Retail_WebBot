@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import StoreMap from './StoreMap.jsx'
 import AuthScreen from './AuthScreen.jsx'
 import { useUserData } from './hooks/useUserData.js'
-import { franc } from "franc";
+//import { franc } from "franc";
 
 // SVG Icons
 const Icons = {
@@ -1348,6 +1348,28 @@ export default function App() {
     if (next === 'chat') setActiveNav(null);
   };
 
+  const confirmedOrder = async() => {
+
+    const response = await fetch(
+        "https://ulac7ola8k.execute-api.us-east-1.amazonaws.com/default/storeOrder", 
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            sessionId: authUser?.userId,
+            shipping: shipping,
+            billing: billing,
+            payment: payment,
+            cartItems: cartItems,
+          }),
+        }
+      );
+
+      if(!response.ok) throw new Error("Couldn't make order: ${res.status}");
+  }
+
   const checkoutSteps = ['cart', 'shipping', 'billing', 'payment', 'review'];
 
   const renderContent = () => {
@@ -1359,7 +1381,7 @@ export default function App() {
     if (view === 'shipping') return <AddressForm title="Enter Shipping Address" data={shipping} onChange={setShipping} onContinue={() => setView('billing')} onBack={goBack} />;
     if (view === 'billing') return <AddressForm title="Enter Billing Address" data={billing} onChange={setBilling} onContinue={() => setView('payment')} onBack={goBack} extraAction={{ label: 'Same as Shipping', fn: () => { setBilling({ ...shipping }); setView('payment'); } }} />;
     if (view === 'payment') return <PaymentForm data={payment} onChange={setPayment} onReview={() => setView('review')} onBack={goBack} />;
-    if (view === 'review') return <ReviewPage shipping={shipping} billing={billing} payment={payment} cartItems={cartItems} onConfirm={() => setView('confirmed')} onBack={goBack} />;
+    if (view === 'review') return <ReviewPage shipping={shipping} billing={billing} payment={payment} cartItems={cartItems} onConfirm={() => { confirmedOrder(); setView('confirmed'); }} onBack={goBack} />;
     if (view === 'confirmed') return <ConfirmationPage onBackToChat={() => { setView('chat'); setActiveNav(null); }} />;
 
     // Chat view
